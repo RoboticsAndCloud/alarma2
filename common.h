@@ -1,0 +1,11 @@
+#ifndef ALARMA2_SONIC_H
+#define ALARMA2_SONIC_H
+
+
+#define PIN_KEYPAD_START 2
+// PIN_KEYPAD_END 9
+#define PIN_SONIC_TRIGGER 10
+#define PIN_SONIC_ECHO 11
+
+
+#endif
