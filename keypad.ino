@@ -1,7 +1,11 @@
-const int ROWS_FROM = 2;
+#include "common.h"
+
+
+const int ROWS_FROM = PIN_KEYPAD_START;
 const int ROWS_COUNT = 4;
 const int COLS_FROM = 6;
 const int COLS_COUNT = 4;
+
 
 void keypad_setup()
 {

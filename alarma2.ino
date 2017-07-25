@@ -7,6 +7,12 @@ void setup()
 
     keypad_setup();
     Serial.println(F("[keypad] done"));
+
+    mp3_setup();
+    Serial.println("F[mp3] done");
+
+    sonic_setup();
+    Serial.println("F[sonic] done");
 }
 
 
