@@ -39,3 +39,9 @@ int sonic_measure_distance()
     }
     return distance;
 }
+
+
+void sonic_run()
+{
+}
+

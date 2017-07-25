@@ -1,12 +1,9 @@
-#include <Wire.h>
 
-const int PCF8574 = 0xaa;
 int leds_state = 0xff;   // all off
 
 
 void leds_setup()
 {
-    Wire.begin();
 }
 
 
@@ -21,7 +18,7 @@ void leds_set(int led, bool on)
 
     if (leds_state != prev_state)
     {
-        Wire.beginTransmission(PCF8574);
+        Wire.beginTransmission(I2C_LEDS_ADDR);
         Wire.write(leds_state);
         Wire.endTransmission();
     }

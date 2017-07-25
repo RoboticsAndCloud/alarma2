@@ -1,6 +1,10 @@
+#include <Wire.h>
+
+
 void setup()
 {
     Serial.begin(9600);
+    Wire.begin();
 
     leds_setup();
     Serial.println(F("[leds] done"));
@@ -19,4 +23,6 @@ void setup()
 void loop()
 {
     keypad_run();
+
+    sonic_run();
 }
