@@ -2,16 +2,17 @@
 #define ALARMA2_SONIC_H
 
 
-#define PIN_KEYPAD_START 2
-// PIN_KEYPAD_END 9
-#define PIN_SONIC_TRIGGER 10
-#define PIN_SONIC_ECHO 11
-#define PIN_MP3_RX 12
-#define PIN_MP3_TX 13
+#define PIN_SONIC_TRIGGER 2
+#define PIN_SONIC_ECHO 3
+#define PIN_MP3_RX 4
+#define PIN_MP3_TX 5
+#define PIN_BT_RX 6
+#define PIN_BT_TX 7
 
 
 
 #define I2C_LEDS_ADDR   0x4a
+#define I2C_KEYPAD_ADDR	0x4b
 
 
 #endif
