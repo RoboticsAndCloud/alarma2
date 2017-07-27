@@ -8,7 +8,7 @@
 #define PIN_MP3_TX 5
 #define PIN_BT_RX 6
 #define PIN_BT_TX 7
-
+#define PIN_BUZZER 8
 
 
 #define I2C_LEDS_ADDR   0x4a

@@ -15,6 +15,16 @@ void mp3_setup()
 {
     mp3_serial.begin(9600);
     mp3_send_cmd(MP3_DFMINI_PLAYSRC, MP3_DFMINI_SRCFLASH);
+
+    pinMode(PIN_BUZZER, OUTPUT);
+}
+
+
+void mp3_beep()
+{
+    digitalWrite(PIN_BUZZER, HIGH);
+    delay(100);
+    digitalWrite(PIN_BUZZER, LOW);
 }
 
 

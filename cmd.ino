@@ -4,12 +4,9 @@ uint8_t cmd_rcv_buffer_cnt = 0;
 
 
 #define CMD_HELP '?'
-#define CMD_LIGHTS 'L'
-#define CMD_BEEP 'B'
-#define CMD_MELODY 'M'
-#define CMD_ALARM 'A'
-#define CMD_STOP 'S'
-#define CMD_TEXT 'T'
+#define CMD_BEEP 'b'
+#define CMD_PLAY 'p'
+#define CMD_STOP 's'
 
 
 bool cmd_parse(Stream& io);
@@ -43,9 +40,9 @@ bool cmd_parse(Stream& io)
 {
     int int_param;
   
-/*
     switch(cmd_rcv_buffer[0])
     {
+/*
     case CMD_LIGHTS:
         if(cmd_rcv_buffer_cnt == 4)
         {
@@ -55,31 +52,24 @@ bool cmd_parse(Stream& io)
             led_set_all(r, g, b);
         }
         return true;
-      
+*/
     case CMD_BEEP:
-        sound_beep();
-        return true;
-      
-    case CMD_MELODY:
-        int_param = cmd_parse_dec(1);
-        if(int_param != -1) {
-            return sound_melody(int_param);
-        }
-        return false;
-      
-    case CMD_STOP:
-        led_set_all(false, false, false);
+        mp3_beep();
         return true;
 
-    case CMD_TEXT:
-//FIXME      oled_set_text((const char*)&bt_rcv_buffer[1]);
+    case CMD_PLAY:
+        mp3_play();
         return true;
-      
+
+    case CMD_STOP:
+        mp3_stop();
+        return true;
+
     case CMD_HELP:
-        io.println(F("B M[NUM] L[01][01][01] T[text]"));
+        io.println(F("b p s"));
         return true;
     }
-*/
+
     return false;
 }
 
