@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Alarma2</string>
+
+    <string name="btn_on">On</string>
+    <string name="btn_off">Off</string>
+    <string name="btn_list">List</string>
 </resources>
