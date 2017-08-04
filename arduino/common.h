@@ -4,8 +4,8 @@
 
 #define PIN_SONIC_TRIGGER 11
 #define PIN_SONIC_ECHO 12
-#define PIN_MP3_RX 4
-#define PIN_MP3_TX 5
+#define PIN_MP3_RX 2
+#define PIN_MP3_TX 3
 #define PIN_BT_RX 6
 #define PIN_BT_TX 7
 #define PIN_BUZZER 8

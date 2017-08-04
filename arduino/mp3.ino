@@ -16,7 +16,23 @@ void mp3_setup()
     mp3_serial.begin(9600);
     mp3_send_cmd(MP3_DFMINI_PLAYSRC, MP3_DFMINI_SRCFLASH);
 
+  // http://www.picaxeforum.co.uk/showthread.php?26021-DFPlayer-Mini-MP3-sound-board-w-Serial-commands
+  //
+    Serial.println(F("                 0x7e 0xff 0x6 0xe 0x0 0x0 0x0 0xfe 0xed 0xef"));
+    mp3_stop();
+
     pinMode(PIN_BUZZER, OUTPUT);
+}
+
+
+void mp3_run()
+{
+  if (mp3_serial.available())
+  {
+    Serial.print("[mp3] received: 0x");
+    Serial.print(mp3_serial.read(), HEX);
+    Serial.println();
+  }
 }
 
 
@@ -42,7 +58,7 @@ void mp3_stop()
 
 void mp3_send_cmd(unsigned char cmd, unsigned int param)
 {
-    unsigned char stream[9];
+    unsigned char stream[10];
     stream[0] = 0x73;   // 0x73 start bits
     stream[1] = 0xff;   // 0xff version
     stream[2] = 0x06;   // 0x06 len: number of bytes following
@@ -51,11 +67,24 @@ void mp3_send_cmd(unsigned char cmd, unsigned int param)
     stream[5] = (param >> 8);   // 0x00 param_high_byte
     stream[6] = param;   // 0x00 param_low_byte
     stream[7] = 0x00;   // chk checksum (from version to param2)
-    stream[8] = 0xef;   // 0xef end bits
+    stream[8] = 0x00;
+    stream[9] = 0xef;   // 0xef end bits
 
     // calc checksum
-    unsigned char sum = stream[1] + stream[2] + stream[3] + stream[4] +
+    unsigned int sum = stream[1] + stream[2] + stream[3] + stream[4] +
         stream[5] + stream[6];
-    Serial.println(sum);
+    stream[7] = sum >> 8;
+    stream[8] = sum;
+    Serial.print(F("[mp3] sending: 0x"));
+    Serial.println(sum, HEX);
+
+  Serial.print(F("[i2c] sending: ["));
+  for (int i=0; i<10; ++i)
+  {
+    mp3_serial.write(stream[i]);
+    Serial.print(" 0x");
+    Serial.print(stream[i], HEX);
+  }
+  Serial.println(" ]");
 }
 

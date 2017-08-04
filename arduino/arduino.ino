@@ -33,6 +33,8 @@ void loop()
 
     leds_run();
 
+    mp3_run();
+
     if(Serial.available())
     {
     //if(Serial.read() == 'm')

@@ -51,8 +51,10 @@ void sonic_run()
     return;
   }
   sonic_last_access = m;
-  
+
+  /*
   Serial.print(sonic_measure_distance());
   Serial.println("cm");
+  */
 }
 
