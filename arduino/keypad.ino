@@ -1,17 +1,16 @@
 #include "common.h"
 
 
-const int ROWS_COUNT = 4;
-const int COLS_COUNT = 4;
-
-#define KEYPAD_INIT 0xf0
-#define KEYPAD_COL(x) (1 << x)
-#define KEYPAD_ROW(x) ((1 << x) << 4)
+int key2char[16][2] = {
+  {0x77, '1'}, {0x7b, '2'}, {0x7d, '3'}, {0x7e, 'A'},
+  {0xb7, '4'}, {0xbb, '5'}, {0xbd, '6'}, {0xbe, 'B'},
+  {0xd7, '7'}, {0xdb, '8'}, {0xdd, '9'}, {0xde, 'C'},
+  {0xe7, '*'}, {0xeb, '0'}, {0xed, '#'}, {0xee, 'D'},
+};
 
 
 void keypad_setup()
 {
-    keypad_send(KEYPAD_INIT);
 }
 
 
@@ -32,31 +31,81 @@ int keypad_read()
     return 0xff;
 }
 
+void keypad_write(int val)
+{
+  Wire.beginTransmission(I2C_KEYPAD_ADDR);
+  Wire.write(val);
+  Wire.endTransmission();
+}
+
 
 void keypad_run()
 {
-    int key_pressed = -1;
-    for (int c=0; c<COLS_COUNT; ++c)
+  byte error, address;
+  int nDevices;
+  int inbytes;
+  int key;
+ 
+  //Serial.println("Scanning...");
+ 
+  nDevices = 0;
+  for(address = 1; address < 127; address++ )
+  {
+    // The i2c_scanner uses the return value of
+    // the Write.endTransmisstion to see if
+    // a device did acknowledge to the address.
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+ 
+    if (error == 0)
     {
-        keypad_send(KEYPAD_COL(c));
-        int state = keypad_read();
-        for (int r=0; r<ROWS_COUNT; ++r)
-        {
-            if (state & KEYPAD_ROW(c))
-            {
-                Serial.print("push: c=");
-                Serial.print(COLS_COUNT + c);
-                Serial.print(" r=");
-                Serial.println(ROWS_COUNT + r);
-                key_pressed = c * COLS_COUNT + r;
-            }
-        }
-        keypad_send(KEYPAD_INIT);
-    }
+      /*
+      Serial.print(F("[device] I2C device found at address 0x"));
+      if (address<16)
+        Serial.print("0");
+      Serial.print(address,HEX);
+      Serial.println("  !");
+      */
 
-    if (key_pressed != -1)
-    {
-        Serial.print("[keypad] ");
-        Serial.println(key_pressed);
+      keypad_write(0xf0);
+      inbytes = keypad_read();
+      if (inbytes != 0xf0)
+      {
+        key = inbytes;
+        //i2c_print(address, inbytes >> 4);
+
+        keypad_write(0x0f);
+        inbytes = keypad_read();
+        //if (inbytes != 0x0f)
+          //i2c_print(address, inbytes);
+
+
+        key |= inbytes;
+        //i2c_print(address, key);
+
+        for (int i=0; i<16; ++i)
+        {
+          if (key2char[i][0] == key)
+          {
+            Serial.print("key: ");
+            Serial.println((char)key2char[i][1]);
+          }
+        }
+
+        delay(1000);
+        Serial.println();
+      }
+        
+      
+ 
+      nDevices++;
     }
+    else if (error==4)
+    {
+      Serial.print("Unknow error at address 0x");
+      if (address<16)
+        Serial.print("0");
+      Serial.println(address,HEX);
+    }    
+  }
 }

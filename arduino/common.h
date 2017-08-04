@@ -12,7 +12,7 @@
 
 
 #define I2C_LEDS_ADDR   0x4a
-#define I2C_KEYPAD_ADDR	0x4b
+#define I2C_KEYPAD_ADDR	0x20 // 7 bits, without r/w bit
 
 
 #endif
