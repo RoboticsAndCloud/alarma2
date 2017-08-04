@@ -3,6 +3,9 @@
 
 #define ALARM_MAX 1000
 
+#define SONIC_DELAY 100
+unsigned long sonic_last_access = 0;
+
 
 void sonic_setup()
 {
@@ -43,5 +46,13 @@ int sonic_measure_distance()
 
 void sonic_run()
 {
+  unsigned long m = millis();
+  if((unsigned long)(m - sonic_last_access) < SONIC_DELAY) {
+    return;
+  }
+  sonic_last_access = m;
+  
+  Serial.print(sonic_measure_distance());
+  Serial.println("cm");
 }
 
