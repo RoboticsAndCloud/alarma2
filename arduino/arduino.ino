@@ -31,6 +31,8 @@ void loop()
 
     bt_run();
 
+    leds_run();
+
     if(Serial.available())
     {
     //if(Serial.read() == 'm')
