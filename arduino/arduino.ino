@@ -1,5 +1,6 @@
 #include <Wire.h>
-
+#include <avr/wdt.h>
+#include "common.h"
 
 void setup()
 {
@@ -20,6 +21,11 @@ void setup()
 
     bt_setup();
     Serial.println(F("[bt] done"));
+
+#ifdef MY_USE_WDT
+    wdt_enable(WDTO_8S);
+    Serial.println(F("[wdt] on"));
+#endif
 }
 
 
@@ -41,5 +47,9 @@ void loop()
       //sound_play_debug(2);
         cmd_add_char(Serial);
     }
+
+#ifdef MY_USE_WDT
+    wdt_reset();
+#endif
 }
 

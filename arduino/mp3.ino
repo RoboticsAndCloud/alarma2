@@ -19,7 +19,7 @@ void mp3_setup()
   // http://www.picaxeforum.co.uk/showthread.php?26021-DFPlayer-Mini-MP3-sound-board-w-Serial-commands
   //
     Serial.println(F("                 0x7e 0xff 0x6 0xe 0x0 0x0 0x0 0xfe 0xed 0xef"));
-    mp3_stop();
+    mp3_play();
 
     pinMode(PIN_BUZZER, OUTPUT);
 }
@@ -46,6 +46,14 @@ void mp3_beep()
 
 void mp3_play()
 {
+  /*
+   *  
+  static uint8_t play_cmd [10] = { 0X7E, 0xFF, 0x06, 0X03, 00, 00, 00, 0xFE, 0xee, 0XEF};
+  play_cmd[5] = (uint8_t)(index >> 8);
+  play_cmd[6] = (uint8_t)(index);
+  sendCmd (play_cmd);
+   */
+   Serial.println(F("                   0X7E, 0xFF, 0x06, 0X03, 00, 00, 00, 0xFE, 0xee, 0XEF"));
     mp3_send_cmd(MP3_DFMINI_PLAY, 0);
 }
 
@@ -77,6 +85,24 @@ void mp3_send_cmd(unsigned char cmd, unsigned int param)
     stream[8] = sum;
     Serial.print(F("[mp3] sending: 0x"));
     Serial.println(sum, HEX);
+
+
+
+
+  stream[0] = 0x7E;
+  stream[1] = 0xFF;
+  stream[2] = 0x06;
+  stream[3] = 0x03;
+  stream[4] = 0x00;
+  stream[5] = 0x00;
+  stream[6] = 0x00;
+  stream[7] = 0xFE;
+  stream[8] = 0xee;
+  stream[9] = 0xEF;
+
+
+
+    
 
   Serial.print(F("[i2c] sending: ["));
   for (int i=0; i<10; ++i)
