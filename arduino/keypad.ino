@@ -39,73 +39,53 @@ void keypad_write(int val)
 }
 
 
-void keypad_run()
+int keypad_run()
 {
-  byte error, address;
-  int nDevices;
-  int inbytes;
-  int key;
+	int key = keypad_poll_keys();
+	// wait for release
+	if (key != -1)
+	{
+		for (int i=0; i<50; ++i)
+		{
+			if (keypad_poll_keys() == -1)
+				return key;
+		}
+	}
+	return -1;
+}
+
+
+int keypad_poll_keys()
+{
+	int inbytes;
+	int key;
  
   //Serial.println("Scanning...");
  
-  nDevices = 0;
-  for(address = 1; address < 127; address++ )
-  {
-    // The i2c_scanner uses the return value of
-    // the Write.endTransmisstion to see if
-    // a device did acknowledge to the address.
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
- 
-    if (error == 0)
-    {
-      /*
-      Serial.print(F("[device] I2C device found at address 0x"));
-      if (address<16)
-        Serial.print("0");
-      Serial.print(address,HEX);
-      Serial.println("  !");
-      */
+	keypad_write(0xf0);
+	inbytes = keypad_read();
+	if (inbytes != 0xf0)
+	{
+		key = inbytes;
+		//i2c_print(address, inbytes >> 4);
 
-      keypad_write(0xf0);
-      inbytes = keypad_read();
-      if (inbytes != 0xf0)
-      {
-        key = inbytes;
-        //i2c_print(address, inbytes >> 4);
-
-        keypad_write(0x0f);
-        inbytes = keypad_read();
+		keypad_write(0x0f);
+		inbytes = keypad_read();
         //if (inbytes != 0x0f)
           //i2c_print(address, inbytes);
 
 
-        key |= inbytes;
-        //i2c_print(address, key);
+		key |= inbytes;
+		//i2c_print(address, key);
 
-        for (int i=0; i<16; ++i)
-        {
-          if (key2char[i][0] == key)
-          {
-            Serial.print("key: ");
-            Serial.println((char)key2char[i][1]);
-          }
-        }
+		for (int i=0; i<16; ++i)
+		{
+			if (key2char[i][0] == key)
+			{
+				return key2char[i][1];
+			}
+		}
+	}
 
-        delay(1000);
-        Serial.println();
-      }
-        
-      
- 
-      nDevices++;
-    }
-    else if (error==4)
-    {
-      Serial.print(F("[i2c] Unknown error at address 0x"));
-      if (address<16)
-        Serial.print("0");
-      Serial.println(address,HEX);
-    }    
-  }
+  return -1;
 }

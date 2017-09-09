@@ -4,7 +4,8 @@
 
 void setup()
 {
-    Serial.begin(9600);
+	Serial.begin(9600);
+    Wire.begin();
 
     leds_setup();
     Serial.println(F("[leds] done"));
@@ -12,14 +13,14 @@ void setup()
     keypad_setup();
     Serial.println(F("[keypad] done"));
 
-    mp3_setup();
-    Serial.println(F("[mp3] done"));
+//    mp3_setup();
+//    Serial.println(F("[mp3] done"));
 
     sonic_setup();
     Serial.println(F("[sonic] done"));
 
-    bt_setup();
-    Serial.println(F("[bt] done"));
+//    bt_setup();
+//    Serial.println(F("[bt] done"));
 
 #ifdef MY_USE_WDT
     wdt_enable(WDTO_8S);
@@ -28,17 +29,19 @@ void setup()
 }
 
 
+
+
 void loop()
 {
-    keypad_run();
+	game_run();
 
     sonic_run();
 
-    bt_run();
+//    bt_run();
 
     leds_run();
 
-    mp3_run();
+/*    mp3_run();
 
     if(Serial.available())
     {
@@ -50,5 +53,6 @@ void loop()
 #ifdef MY_USE_WDT
     wdt_reset();
 #endif
+*/
 }
 

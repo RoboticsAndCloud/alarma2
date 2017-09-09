@@ -2,7 +2,7 @@
 #define COMMON_H
 
 
-#define MY_USE_WDT
+//#define MY_USE_WDT
 
 
 #define PIN_SONIC_TRIGGER 11
