@@ -6,6 +6,10 @@ int leds_state = 0xff;   // all off
 unsigned long leds_last_access = 0;
 
 
+bool led_alarm_is_on = false;
+int led_alarm_blinking = 0;
+
+
 void leds_setup()
 {
 	leds_off();
@@ -20,6 +24,20 @@ void leds_run()
 	}
 
 	leds_last_access = m;
+
+	if (led_alarm_is_on)
+	{
+		if (led_alarm_blinking++ % 2)
+		{
+			leds_set(4, true);
+			leds_set(7, true);
+		}
+		else
+		{
+			leds_set(4, false);
+			leds_set(7, false);
+		}
+	}
 }
 
 
@@ -59,3 +77,7 @@ void led_alarm()
 }
 
 
+void led_alarm(bool b)
+{
+	led_alarm_is_on = b;
+}
