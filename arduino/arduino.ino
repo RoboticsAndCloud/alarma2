@@ -13,14 +13,12 @@ void setup()
     keypad_setup();
     Serial.println(F("[keypad] done"));
 
-//    mp3_setup();
-//    Serial.println(F("[mp3] done"));
+	mp3_setup();
 
     sonic_setup();
     Serial.println(F("[sonic] done"));
 
-//    bt_setup();
-//    Serial.println(F("[bt] done"));
+	bt_setup();
 
 #ifdef MY_USE_WDT
     wdt_enable(WDTO_8S);
@@ -33,23 +31,26 @@ void setup()
 
 void loop()
 {
+	mp3_beep();
+	return;
+
 	game_run();
 
     sonic_run();
 
-//    bt_run();
+	bt_run();
 
     leds_run();
 
-/*    mp3_run();
+//    mp3_run();
 
-    if(Serial.available())
-    {
+	if(Serial.available())
+	{
     //if(Serial.read() == 'm')
       //sound_play_debug(2);
-        cmd_add_char(Serial);
-    }
-
+		cmd_add_char(Serial);
+	}
+/*
 #ifdef MY_USE_WDT
     wdt_reset();
 #endif

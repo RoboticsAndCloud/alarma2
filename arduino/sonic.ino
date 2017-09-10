@@ -49,16 +49,18 @@ int sonic_measure_distance()
 
 void sonic_run()
 {
-  unsigned long m = millis();
-  if((unsigned long)(m - sonic_last_access) < SONIC_DELAY) {
-    return;
-  }
-  sonic_last_access = m;
+	unsigned long m = millis();
+	if((unsigned long)(m - sonic_last_access) < SONIC_DELAY) {
+		return;
+	}
+	sonic_last_access = m;
 
 	sonic_distance = sonic_measure_distance();
 
+/*
 	Serial.print(F("[sonic] "));
 	Serial.print(sonic_distance);
 	Serial.println(F("cm"));
+*/
 }
 
