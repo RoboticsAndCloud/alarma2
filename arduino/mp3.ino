@@ -8,11 +8,19 @@
 #define MP3_DFMINI_SRCFLASH 0x04
 
 
-SoftwareSerial mp3_serial(PIN_MP3_RX, PIN_MP3_TX);
+bool beep_enabled = false;
+bool beep_alarm_on = false;
+#define BEEP_DELAY 1000
+unsigned long beep_last_access = 0;
+int beep_count = 0;
+
+
+//SoftwareSerial mp3_serial(PIN_MP3_RX, PIN_MP3_TX);
 
 
 void mp3_setup()
 {
+/*
     mp3_serial.begin(9600);
     mp3_send_cmd(MP3_DFMINI_PLAYSRC, MP3_DFMINI_SRCFLASH);
 
@@ -23,6 +31,8 @@ void mp3_setup()
 
     pinMode(PIN_BUZZER, OUTPUT);
 	digitalWrite(PIN_BUZZER, LOW);
+*/
+	mp3_beep_alarm(false);
 
 	Serial.println(F("[mp3] done"));
 }
@@ -30,23 +40,57 @@ void mp3_setup()
 
 void mp3_run()
 {
+	unsigned long m = millis();
+	if((unsigned long)(m - beep_last_access) < BEEP_DELAY) {
+		return;
+	}
+	beep_last_access = m;
+
+	if (beep_enabled && beep_alarm_on)
+	{
+		pinMode(PIN_BUZZER, OUTPUT);
+		if (++beep_count % 2)
+			digitalWrite(PIN_BUZZER, HIGH);
+		else
+			digitalWrite(PIN_BUZZER, LOW);
+	}
+
+/*
   if (mp3_serial.available())
   {
     Serial.print("[mp3] received: 0x");
     Serial.print(mp3_serial.read(), HEX);
     Serial.println();
   }
+*/
 }
 
 
 void mp3_beep()
 {
-    pinMode(PIN_BUZZER, OUTPUT);
+	pinMode(PIN_BUZZER, OUTPUT);
 
-    digitalWrite(PIN_BUZZER, HIGH);
-    delay(1000);
-    digitalWrite(PIN_BUZZER, LOW);
-    delay(1000);
+	digitalWrite(PIN_BUZZER, HIGH);
+	delay(1000);
+	digitalWrite(PIN_BUZZER, LOW);
+}
+
+
+void mp3_beep_alarm(bool b)
+{
+	beep_alarm_on = b;
+	if (!beep_alarm_on)
+	{
+		pinMode(PIN_BUZZER, OUTPUT);
+		digitalWrite(PIN_BUZZER, LOW);
+	}
+}
+
+
+void mp3_beep_enable(bool b)
+{
+	beep_enabled = b;
+	mp3_beep_alarm(false);
 }
 
 
@@ -110,6 +154,7 @@ void mp3_send_cmd(unsigned char cmd, unsigned int param)
 
     
 
+/*
   Serial.print(F("[i2c] sending: ["));
   for (int i=0; i<10; ++i)
   {
@@ -118,5 +163,6 @@ void mp3_send_cmd(unsigned char cmd, unsigned int param)
     Serial.print(stream[i], HEX);
   }
   Serial.println(" ]");
+*/
 }
 

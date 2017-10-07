@@ -57,6 +57,10 @@ bool cmd_parse(Stream& io)
         return true;
 */
     case CMD_BEEP:
+	if (cmd_rcv_buffer[1] == '1')
+		mp3_beep_enable(true);
+	else if (cmd_rcv_buffer[1] == '0')
+		mp3_beep_enable(false);
         mp3_beep();
         return true;
 
@@ -81,7 +85,7 @@ bool cmd_parse(Stream& io)
         return true;
 
     case CMD_HELP:
-        io.println(F("b p s i A D"));
+        io.println(F("b[01] p s i A D"));
         return true;
     }
 

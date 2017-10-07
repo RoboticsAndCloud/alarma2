@@ -1,18 +1,23 @@
+extern int g_sonic_distance;
+
+
+
 #define PASSWD_LEN 4
 int passwd[PASSWD_LEN] = { '1', '3', '8', '5' };
 int passwd_pos = -1;
-int passwd_try[PASSWD_LEN];
+int passwd_try[PASSWD_LEN + 1];
 
 
 #define GAME_KEY_ACTIVE 'A'
 #define GAME_KEY_DEACTIVE 'D'
+#define GAME_KEY_BEEP 'B'
 
 
 bool game_activated = false;
+bool game_show_alarm = false;
 
 
 int game_min_distance = -1;
-extern int sonic_distance;
 
 int game_key_pressed = -1;
 
@@ -21,12 +26,17 @@ void game_run()
 {
 	if (game_activated)
 	{
-		if (sonic_distance < game_min_distance)
+		if (g_sonic_distance < game_min_distance)
 		{
-			led_alarm(true);
-			Serial.print(F("[game] ALARM @"));
-			Serial.println(sonic_distance);
-//			mp3_beep();
+			if (game_show_alarm)
+			{
+				led_alarm(true);
+				mp3_beep_alarm(true);
+
+				game_show_alarm = false;
+				Serial.print(F("[game] ALARM @"));
+				Serial.println(g_sonic_distance);
+			}
 		}
 	}
 
@@ -64,6 +74,10 @@ void game_run()
 			leds_set(1, true);
 			leds_set(2, true);
 			leds_set(3, true);
+		}
+		else if (key == GAME_KEY_BEEP)
+		{
+			mp3_beep_enable(true);
 		}
 	}
 	else if (passwd_pos < PASSWD_LEN)
@@ -109,21 +123,35 @@ void game_run()
 
 void game_activate()
 {
+	leds_off();
 	leds_set(1, true);
 	leds_set(2, true);
 
 	game_activated = true;
-	game_min_distance = sonic_distance - 10;
-	Serial.print(F("[game] activated @"));
+	game_show_alarm = true;
+
+	game_min_distance = g_sonic_distance - 10;
+	Serial.print(F("[game] ACTIVATED @"));
 	Serial.println(game_min_distance);
 
 	led_alarm(false);
+	mp3_beep_alarm(false);
+
+	mp3_beep();
 }
 
 
 void game_deactivate()
 {
+	leds_off();
+
 	game_activated = false;
+	game_show_alarm = false;
+
 	led_alarm(false);
-	Serial.println(F("[game] deactivated"));
+	mp3_beep_alarm(false);
+
+	mp3_beep();
+
+	Serial.println(F("[game] DEACTIVATED"));
 }

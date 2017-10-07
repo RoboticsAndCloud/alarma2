@@ -5,34 +5,33 @@
 void setup()
 {
 	Serial.begin(9600);
-    Wire.begin();
+//	Wire.begin();
 
+/*
+	leds_setup();
+	Serial.println(F("[leds] done"));
 
-    leds_setup();
-    Serial.println(F("[leds] done"));
-
-    keypad_setup();
-    Serial.println(F("[keypad] done"));
+	keypad_setup();
+	Serial.println(F("[keypad] done"));
 
 	mp3_setup();
+*/
+	sonic_setup();
+	Serial.println(F("[sonic] done"));
 
-    sonic_setup();
-    Serial.println(F("[sonic] done"));
-
-	if (Serial.available())
-		cmd_add_char(Serial);
-
+#ifdef MY_USE_BT
 	bt_setup();
+#endif
 
 
 	// initially activated
-	sonic_run();
-	game_activate();
+//	sonic_run();
+//	game_activate();
 
 
 #ifdef MY_USE_WDT
-    wdt_enable(WDTO_8S);
-    Serial.println(F("[wdt] on"));
+	wdt_enable(WDTO_8S);
+	Serial.println(F("[wdt] on"));
 #endif
 }
 
@@ -41,17 +40,18 @@ void setup()
 
 void loop()
 {
-    sonic_run();
+	sonic_run();
+return;
 
 	game_run();
 
-    sonic_run();
-
+#ifdef MY_USE_BT
 	bt_run();
+#endif
 
-    leds_run();
+	leds_run();
 
-//    mp3_run();
+	mp3_run();
 
 	if(Serial.available())
 	{

@@ -3,6 +3,7 @@
 
 
 //#define MY_USE_WDT
+//#define MY_USE_BT
 
 
 #define PIN_SONIC_TRIGGER 11
