@@ -7,10 +7,13 @@ import android.os.Bundle;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import com.madsen.peter.alarma2.bt.Connection;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +48,24 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        ((ListView)findViewById(R.id.lv)).setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                final Connection conn = new Connection("fuji-prusa");
+
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            conn.connect();
+                            conn.getStatus();
+                            conn.disconnect();
+                        } catch (Exception ex) {
+                        } finally {}
+                    }
+                }).start();
+            }
+        });
 
         mBA = BluetoothAdapter.getDefaultAdapter();
     }
@@ -69,7 +90,9 @@ public class MainActivity extends AppCompatActivity {
 
         List list = new ArrayList();
 
-        for(BluetoothDevice bt : pairedDevices) list.add(bt.getName());
+        for(BluetoothDevice bt : pairedDevices)
+            list.add(bt.getName());
+
         Toast.makeText(getApplicationContext(), "Showing Paired Devices",Toast.LENGTH_SHORT).show();
 
         final ArrayAdapter adapter = new  ArrayAdapter(this,android.R.layout.simple_list_item_1, list);
