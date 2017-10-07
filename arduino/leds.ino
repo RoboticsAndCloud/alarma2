@@ -12,6 +12,42 @@ int led_alarm_blinking = 0;
 
 void leds_setup()
 {
+	leds_intro();
+}
+
+
+void leds_intro()
+{
+	leds_off();
+
+/*
+	for (int i=0; i<4; ++i)
+	{
+		for (int k=0; k<4; ++k)
+		{
+			leds_set(k, true);
+			delay(200);
+		}
+		leds_off();
+	}
+*/
+	for (int i=0; i<4; ++i)
+	{
+		for (int k=0; k<4; ++k)
+		{
+			leds_off();
+			leds_set(k, true);
+			delay(200);
+		}
+
+		for (int k=2; k>=1; --k)
+		{
+			leds_off();
+			leds_set(k, true);
+			delay(200);
+		}
+	}
+
 	leds_off();
 }
 

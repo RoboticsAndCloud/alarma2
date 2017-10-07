@@ -24,7 +24,8 @@ void game_run()
 		if (sonic_distance < game_min_distance)
 		{
 			led_alarm(true);
-			Serial.println(F("[game] ALARM"));
+			Serial.print(F("[game] ALARM @"));
+			Serial.println(sonic_distance);
 //			mp3_beep();
 		}
 	}
@@ -89,27 +90,40 @@ void game_run()
 					return;
 				}
 			}
-			leds_set(1, true);
-			leds_set(2, true);
 
 			switch(game_key_pressed)
 			{
 			case GAME_KEY_ACTIVE:
-				game_activated = true;
-				game_min_distance = sonic_distance - 10;
-				Serial.print(F("[game] activated @"));
-				Serial.println(game_min_distance);
-
-				led_alarm(false);
+				game_activate();
 				break;
 			case GAME_KEY_DEACTIVE:
-				game_activated = false;
-				led_alarm(false);
-				Serial.println(F("[game] deactivated"));
+				game_deactivate();
 				break;
 			}
 
 			game_key_pressed = -1;
 		}
 	}
+}
+
+
+void game_activate()
+{
+	leds_set(1, true);
+	leds_set(2, true);
+
+	game_activated = true;
+	game_min_distance = sonic_distance - 10;
+	Serial.print(F("[game] activated @"));
+	Serial.println(game_min_distance);
+
+	led_alarm(false);
+}
+
+
+void game_deactivate()
+{
+	game_activated = false;
+	led_alarm(false);
+	Serial.println(F("[game] deactivated"));
 }

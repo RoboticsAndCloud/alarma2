@@ -7,6 +7,9 @@ uint8_t cmd_rcv_buffer_cnt = 0;
 #define CMD_BEEP 'b'
 #define CMD_PLAY 'p'
 #define CMD_STOP 's'
+#define CMD_INTRO 'i'
+#define CMD_ACTIVATE 'A'
+#define CMD_DEACTIVATE 'D'
 
 
 bool cmd_parse(Stream& io);
@@ -61,12 +64,24 @@ bool cmd_parse(Stream& io)
         mp3_play();
         return true;
 
+	case CMD_ACTIVATE:
+		game_activate();
+		return true;
+
+	case CMD_DEACTIVATE:
+		game_deactivate();
+		return true;
+	
+	case CMD_INTRO:
+		leds_intro();
+		return true;
+
     case CMD_STOP:
         mp3_stop();
         return true;
 
     case CMD_HELP:
-        io.println(F("b p s"));
+        io.println(F("b p s i A D"));
         return true;
     }
 

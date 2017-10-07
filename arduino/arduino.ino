@@ -19,7 +19,16 @@ void setup()
     sonic_setup();
     Serial.println(F("[sonic] done"));
 
-//	bt_setup();
+	if (Serial.available())
+		cmd_add_char(Serial);
+
+	bt_setup();
+
+
+	// initially activated
+	sonic_run();
+	game_activate();
+
 
 #ifdef MY_USE_WDT
     wdt_enable(WDTO_8S);
