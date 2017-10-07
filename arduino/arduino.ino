@@ -7,6 +7,7 @@ void setup()
 	Serial.begin(9600);
     Wire.begin();
 
+
     leds_setup();
     Serial.println(F("[leds] done"));
 
@@ -18,7 +19,7 @@ void setup()
     sonic_setup();
     Serial.println(F("[sonic] done"));
 
-	bt_setup();
+//	bt_setup();
 
 #ifdef MY_USE_WDT
     wdt_enable(WDTO_8S);
@@ -31,8 +32,7 @@ void setup()
 
 void loop()
 {
-	mp3_beep();
-	return;
+    sonic_run();
 
 	game_run();
 
@@ -50,10 +50,10 @@ void loop()
       //sound_play_debug(2);
 		cmd_add_char(Serial);
 	}
-/*
+
 #ifdef MY_USE_WDT
     wdt_reset();
 #endif
-*/
+
 }
 

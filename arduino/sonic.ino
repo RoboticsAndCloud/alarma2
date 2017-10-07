@@ -38,7 +38,7 @@ int sonic_measure_distance()
     // Calculate the distance (in cm) based on the speed of sound.
     unsigned long distance = duration/58.2;
 
-    //Serial.println(distance);
+//    Serial.println(distance);
 
     if(distance > ALARM_MAX) {
         return ALARM_MAX;
@@ -55,12 +55,14 @@ void sonic_run()
 	}
 	sonic_last_access = m;
 
-	sonic_distance = sonic_measure_distance();
+	int tmp = sonic_measure_distance();
+	if (tmp != 0 && tmp != ALARM_MAX)
+		sonic_distance = sonic_measure_distance();
 
-/*
+#if 0
 	Serial.print(F("[sonic] "));
 	Serial.print(sonic_distance);
 	Serial.println(F("cm"));
-*/
+#endif
 }
 

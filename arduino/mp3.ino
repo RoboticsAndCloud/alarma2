@@ -22,7 +22,7 @@ void mp3_setup()
     mp3_play();
 
     pinMode(PIN_BUZZER, OUTPUT);
-	digitalWrite(PIN_BUZZER, HIGH);
+	digitalWrite(PIN_BUZZER, LOW);
 
 	Serial.println(F("[mp3] done"));
 }
@@ -43,9 +43,9 @@ void mp3_beep()
 {
     pinMode(PIN_BUZZER, OUTPUT);
 
-    digitalWrite(PIN_BUZZER, LOW);
-    delay(1000);
     digitalWrite(PIN_BUZZER, HIGH);
+    delay(1000);
+    digitalWrite(PIN_BUZZER, LOW);
     delay(1000);
 }
 
