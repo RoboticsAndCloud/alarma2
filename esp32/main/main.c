@@ -13,6 +13,9 @@
 #include "config.h"
 
 
+static bool led_on = true;
+
+
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
     return ESP_OK;
@@ -27,6 +30,7 @@ static void http_server_serve(struct netconn* conn)
 	err = netconn_recv(conn, &buf);
 	if (err == ERR_OK)
 	{
+		led_on = !led_on;
 		netconn_write(conn, "OK", 2, NETCONN_NOCOPY);
 	}
 
@@ -87,10 +91,9 @@ void app_main(void)
 
 	// blink
     gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
-    int level = 0;
-    while (true) {
-        gpio_set_level(GPIO_NUM_2, level);
-        level = !level;
+    while (true)
+	{
+        gpio_set_level(GPIO_NUM_2, led_on);
         vTaskDelay(300 / portTICK_PERIOD_MS);
     }
 }
