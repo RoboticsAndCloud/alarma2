@@ -1,15 +1,66 @@
-#include "freertos/FreeRTOS.h"
-#include "esp_wifi.h"
-#include "esp_system.h"
-#include "esp_event.h"
-#include "esp_event_loop.h"
-#include "nvs_flash.h"
-#include "driver/gpio.h"
+#include <freertos/FreeRTOS.h>
+#include <esp_wifi.h>
+#include <esp_system.h>
+#include <esp_event.h>
+#include <esp_event_loop.h>
+#include <nvs_flash.h>
+#include <driver/gpio.h>
+
+#include <lwip/sys.h>
+#include <lwip/netdb.h>
+#include <lwip/api.h>
+
+#include "config.h"
+
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
     return ESP_OK;
 }
+
+
+static void http_server_serve(struct netconn* conn)
+{
+	err_t err;
+	struct netbuf* buf;
+
+	err = netconn_recv(conn, &buf);
+	if (err == ERR_OK)
+	{
+		netconn_write(conn, "OK", 2, NETCONN_NOCOPY);
+	}
+
+	netconn_close(conn);
+
+	netbuf_delete(buf);
+}
+
+
+static void http_server(void* pvParameters)
+{
+	struct netconn* conn;
+	struct netconn* newconn;
+	err_t err;
+
+	conn = netconn_new(NETCONN_TCP);
+	netconn_bind(conn, NULL, 80);
+	netconn_listen(conn);
+
+	do
+	{
+		err = netconn_accept(conn, &newconn);
+		if (err == ERR_OK)
+		{
+			http_server_serve(newconn);
+			netconn_delete(newconn);
+		}
+	}
+	while (err == ERR_OK);
+
+	netconn_close(conn);
+	netconn_delete(conn);
+}
+
 
 void app_main(void)
 {
@@ -22,8 +73,8 @@ void app_main(void)
     ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
     wifi_config_t sta_config = {
         .sta = {
-            .ssid = "ssid",
-            .password = "password",
+            .ssid = CONFIG_SSID,
+            .password = CONFIG_PASSWORD,
             .bssid_set = false
         }
     };
@@ -31,6 +82,10 @@ void app_main(void)
     ESP_ERROR_CHECK( esp_wifi_start() );
     ESP_ERROR_CHECK( esp_wifi_connect() );
 
+	// http server
+	xTaskCreate(&http_server, "http_server", 2048, NULL, 5, NULL);
+
+	// blink
     gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
     int level = 0;
     while (true) {
