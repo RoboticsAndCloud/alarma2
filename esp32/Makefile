@@ -3,7 +3,8 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := app-template
+PROJECT_NAME := alarma2-esp
+EXTRA_COMPONENT_DIRS := src
 
 include $(IDF_PATH)/make/project.mk
 
