@@ -19,12 +19,11 @@
 #include <nvs_flash.h>
 #include <driver/gpio.h>
 
-#include <bt.h>
-
 #include <lwip/netdb.h>
 
 #include "config.h"
 #include "http_server.h"
+#include "bt_gatt_server.h"
 
 
 bool led_on = true;
@@ -35,64 +34,6 @@ static const char* tag = "ESP32ALARMA2";
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
     return ESP_OK;
-}
-
-
-
-/*
- * @brief: BT controller callback function, used to notify the upper layer that
- *         controller is ready to receive command
- */
-static void controller_rcv_pkt_ready(void)
-{
-    printf("controller rcv pkt ready\n");
-}
-
-/*
- * @brief: BT controller callback function, to transfer data packet to upper
- *         controller is ready to receive command
- */
-static int host_rcv_pkt(uint8_t *data, uint16_t len)
-{
-    printf("host rcv pkt: ");
-    for (uint16_t i = 0; i < len; i++) {
-        printf("%02x", data[i]);
-    }
-    printf("\n");
-    return 0;
-}
-
-static esp_vhci_host_callback_t vhci_host_cb = {
-    controller_rcv_pkt_ready,
-    host_rcv_pkt
-};
-
-/*
- * @brief: send HCI commands to perform BLE advertising;
- */
-void bleAdvtTask(void *pvParameters)
-{
-	int cmd_cnt = 0;
-	bool send_avail = false;
-	esp_vhci_host_register_callback(&vhci_host_cb);
-	printf("BLE advt task start\n");
-	while (1)
-	{
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        send_avail = esp_vhci_host_check_send_available();
-        if (send_avail)
-		{
-			/*
-            switch (cmd_cnt) {
-            case 0: hci_cmd_send_reset(); ++cmd_cnt; break;
-            case 1: hci_cmd_send_ble_set_adv_param(); ++cmd_cnt; break;
-            case 2: hci_cmd_send_ble_set_adv_data(); ++cmd_cnt; break;
-            case 3: hci_cmd_send_ble_adv_start(); ++cmd_cnt; break;
-            }
-			*/
-			printf("BLE Advertise, flag_send_avail: %d, cmd_sent: %d\n", send_avail, cmd_cnt);
-        }
-	}
 }
 
 
@@ -127,48 +68,6 @@ static void wifi_init()
 }
 
 
-static void bt_init()
-{
-	esp_err_t ret;
-
-	esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    
-    ret = esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
-    if (ret) {
-        ESP_LOGI(tag, "Bluetooth controller release classic bt memory failed");
-        return;
-    }
-
-    if (esp_bt_controller_init(&bt_cfg) != ESP_OK) {
-        ESP_LOGI(tag, "Bluetooth controller initialize failed");
-        return;
-    }
-
-    if (esp_bt_controller_enable(ESP_BT_MODE_BLE) != ESP_OK) {
-        ESP_LOGI(tag, "Bluetooth controller enable failed");
-        return;
-    }
-
-    /*
-     * If call mem release here, also work. Input ESP_BT_MODE_CLASSIC_BT, the function will
-     * release the memory of classic bt mode.
-     * esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
-     *
-     */
-
-    /*
-     * If call mem release here, also work. Input ESP_BT_MODE_BTDM, the function will calculate
-     * that the BLE mode is already used, so it will release of only classic bt mode.
-     * esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);
-     */
-
-    xTaskCreatePinnedToCore(&bleAdvtTask, "bleAdvtTask", 2048, NULL, 5, NULL, 0);
-
-	ESP_LOGI(tag, "BLE ready.");
-}
-
-
-
 static void task_blinking_led(void* pvParameter)
 {
 	gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
@@ -186,7 +85,7 @@ static void task_blinking_led(void* pvParameter)
 }
 
 
-void app_main(void)
+void btstack_main(void)
 {
     nvs_flash_init();
 
@@ -194,7 +93,7 @@ void app_main(void)
 
 	wifi_init();
 
-	bt_init();
+	bt_gatt_server_init();
 
 	xTaskCreate(&http_server, "http_server", 2048, NULL, 5, NULL);
 	xTaskCreate(&task_blinking_led, "blinking_led", 2048, NULL, 5, NULL);
