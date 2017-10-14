@@ -26,7 +26,7 @@
 #include "bt_gatt_server.h"
 
 
-bool led_on = true;
+int led_on = 1;
 
 static const char* tag = "ESP32ALARMA2";
 
@@ -72,9 +72,9 @@ static void task_blinking_led(void* pvParameter)
 {
 	gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
 
-	gpio_set_level(GPIO_NUM_2, true);
+	gpio_set_level(GPIO_NUM_2, 1);
 	vTaskDelay(1000 / portTICK_PERIOD_MS);
-	gpio_set_level(GPIO_NUM_2, false);
+	gpio_set_level(GPIO_NUM_2, 0);
 	vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 	while (true)

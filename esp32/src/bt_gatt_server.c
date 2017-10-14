@@ -54,6 +54,8 @@
  
 #include "btstack.h"
 
+#include "config.h"
+
 #define RFCOMM_SERVER_CHANNEL 1
 #define HEARTBEAT_PERIOD_MS 1000
 
@@ -236,6 +238,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
 		break;
 
 	case RFCOMM_DATA_PACKET:
+		led_on = !led_on;
 		printf("RCV: '");
 		for (i=0;i<size;i++){
 			putchar(packet[i]);
