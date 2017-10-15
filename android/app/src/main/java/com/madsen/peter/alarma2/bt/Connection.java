@@ -7,14 +7,11 @@ import android.util.Log;
 
 public class Connection {
     private static final String LOG_NAME = "ConnectionBT";
-    private final String bt_device;
     private BT bt = null;
 
     private Handler mHandler = new Handler();
 
-    public Connection(String bt_device) {
-        this.bt_device = bt_device;
-
+    public Connection() {
         bt = new BT();
     }
 
@@ -38,7 +35,7 @@ public class Connection {
     }
 
 
-    public void connect() throws Exception {
+    public void connect(String bt_device) throws Exception {
         if(bt.isConnected()) {
             log("Already connected");
             return;
