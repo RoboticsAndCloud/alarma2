@@ -7,6 +7,9 @@
 #include "config.h"
 
 
+extern uint8_t temprature_sens_read();
+
+
 static void http_server_serve(struct netconn* conn)
 {
 	err_t err;
@@ -18,6 +21,15 @@ static void http_server_serve(struct netconn* conn)
 		led_on = !led_on;
 		netconn_write(conn, "OK", 2, NETCONN_NOCOPY);
 //		ESP_LOGI(tag, "[http] cmd received.");
+
+
+#if 0
+		uint8_t temp = temprature_sens_read();
+		uint8_t temp = my_temp();
+		char buffer[10];
+		int len = snprintf(buffer, sizeof(buffer)-1, "%u", temp);
+		netconn_write(conn, buffer, len, NETCONN_COPY);
+#endif
 	}
 
 	netconn_close(conn);

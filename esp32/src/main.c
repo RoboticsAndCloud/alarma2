@@ -24,6 +24,7 @@
 #include "config.h"
 #include "http_server.h"
 #include "bt_gatt_server.h"
+#include "i2c.h"
 
 
 int led_on = 1;
@@ -68,6 +69,28 @@ static void wifi_init()
 }
 
 
+
+static void task_i2c_test()
+{
+	uint8_t val = 0xff;
+
+	for (;;)
+	{
+		val = 0xff;
+		i2c_master_write_slave(I2C_MASTER_NUM, &val, 1);
+
+//		led_on = 0;
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+		val = 0x00;
+		i2c_master_write_slave(I2C_MASTER_NUM, &val, 1);
+
+//		led_on = 1;
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+	}
+}
+
+
 static void task_blinking_led(void* pvParameter)
 {
 	gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
@@ -95,7 +118,10 @@ void btstack_main(void)
 
 	bt_gatt_server_init();
 
+	i2c_master_init();
+
 	xTaskCreate(&http_server, "http_server", 2048, NULL, 5, NULL);
 	xTaskCreate(&task_blinking_led, "blinking_led", 2048, NULL, 5, NULL);
+	xTaskCreate(&task_i2c_test, "task_i2c_test", 2048, NULL, 5, NULL);
 }
 
