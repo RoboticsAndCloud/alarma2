@@ -23,7 +23,7 @@
 
 #include "config.h"
 #include "http_server.h"
-#include "bt_gatt_server.h"
+#include "bt.h"
 #include "i2c.h"
 
 

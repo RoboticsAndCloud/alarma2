@@ -57,7 +57,7 @@ void http_server(void* pvParameters)
 			netconn_delete(newconn);
 		}
 	}
-	while (err == ERR_OK);
+    while (err == ERR_OK);
 
 	netconn_close(conn);
 	netconn_delete(conn);
