@@ -19,6 +19,7 @@ import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import com.madsen.peter.alarma2.bt.ArduinoCommands;
 import com.madsen.peter.alarma2.bt.BTUtils;
 import com.madsen.peter.alarma2.bt.Connection;
 
@@ -47,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
         ((Button) findViewById(R.id.btn_off)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                action_on();
+                action_off();
             }
         });
 
@@ -63,7 +64,6 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
         String bt_device = settings.getString(CFG_BT_DEVICE, "...");
         btn_select_bt.setText(bt_device);
-        Log.d("yyy", bt_device);
     }
 
     @Override
@@ -147,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 try {
-                    conn.getStatus();
+                    conn.send(ArduinoCommands.CMD_LED_ON);
                 } catch (Exception ex) {
                 } finally {
                 }
@@ -160,7 +160,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 try {
-                    conn.getStatus();
+                    conn.send(ArduinoCommands.CMD_LED_OFF);
                 } catch (Exception ex) {
                 } finally {
                 }

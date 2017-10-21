@@ -77,20 +77,20 @@ static void task_i2c_test()
 	for (;;)
 	{
 		val = 0xff;
-        i2c_master_write_slave(MY_LEDS_I2C_ADDR, &val, 1);
+		i2c_master_write_slave(MY_LEDS_I2C_ADDR, &val, 1);
 
 //		led_on = 0;
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 		val = 0x00;
-        i2c_master_write_slave(MY_LEDS_I2C_ADDR, &val, 1);
+		i2c_master_write_slave(MY_LEDS_I2C_ADDR, &val, 1);
 
 //		led_on = 1;
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-        // read keypad
-        i2c_master_read_slave(MY_KEYPAD_I2C_ADDR, &val, 1);
-        ESP_LOGI(tag, "keypad: 0x%x", val);
+		// read keypad
+		i2c_master_read_slave(MY_KEYPAD_I2C_ADDR, &val, 1);
+		ESP_LOGI(tag, "keypad: 0x%x", val);
 	}
 }
 
@@ -100,10 +100,15 @@ static void task_blinking_led(void* pvParameter)
 	gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
 
 	gpio_set_level(GPIO_NUM_2, 1);
-	vTaskDelay(1000 / portTICK_PERIOD_MS);
+	vTaskDelay(500 / portTICK_PERIOD_MS);
 	gpio_set_level(GPIO_NUM_2, 0);
-	vTaskDelay(1000 / portTICK_PERIOD_MS);
+	vTaskDelay(500 / portTICK_PERIOD_MS);
+	gpio_set_level(GPIO_NUM_2, 1);
+	vTaskDelay(500 / portTICK_PERIOD_MS);
+	gpio_set_level(GPIO_NUM_2, 0);
+	vTaskDelay(500 / portTICK_PERIOD_MS);
 
+	led_on = 0;
 	while (true)
 	{
 		gpio_set_level(GPIO_NUM_2, led_on);

@@ -60,25 +60,7 @@ public class Connection {
     }
 
 
-//    public void upload(final UserDatabase users, Activity activity, final ProgressBar pbar) throws Exception {
-//        send(ArduinoCommands.CMD_ERASE_ALL);
-//
-//        for(int i=0; i<users.size(); ++i) {
-//            send(ArduinoCommands.CMD_ADD_USER + users.tags().get(i).tag);
-//
-//            activity.runOnUiThread(new Runnable() {
-//                @Override
-//                public void run() {
-//                    pbar.incrementProgressBy(1);
-//                }
-//            });
-//        }
-//
-//        send(ArduinoCommands.CMD_SAVE);
-//    }
-
-
-    private String send(String cmd) throws Exception {
+    public String send(String cmd) throws Exception {
         log("Snd: " + cmd);
         String reply = bt.send(cmd);
         log("Rcv: " + reply);
