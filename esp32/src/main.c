@@ -77,16 +77,20 @@ static void task_i2c_test()
 	for (;;)
 	{
 		val = 0xff;
-		i2c_master_write_slave(I2C_MASTER_NUM, &val, 1);
+        i2c_master_write_slave(MY_LEDS_I2C_ADDR, &val, 1);
 
 //		led_on = 0;
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 		val = 0x00;
-		i2c_master_write_slave(I2C_MASTER_NUM, &val, 1);
+        i2c_master_write_slave(MY_LEDS_I2C_ADDR, &val, 1);
 
 //		led_on = 1;
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+        // read keypad
+        i2c_master_read_slave(MY_KEYPAD_I2C_ADDR, &val, 1);
+        ESP_LOGI(tag, "keypad: 0x%x", val);
 	}
 }
 
@@ -114,13 +118,13 @@ void btstack_main(void)
 
     ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
 
-	wifi_init();
+//	wifi_init();
 
 	bt_gatt_server_init();
 
 	i2c_master_init();
 
-	xTaskCreate(&http_server, "http_server", 2048, NULL, 5, NULL);
+//	xTaskCreate(&http_server, "http_server", 2048, NULL, 5, NULL);
 	xTaskCreate(&task_blinking_led, "blinking_led", 2048, NULL, 5, NULL);
 	xTaskCreate(&task_i2c_test, "task_i2c_test", 2048, NULL, 5, NULL);
 }
