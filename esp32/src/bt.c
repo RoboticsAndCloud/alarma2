@@ -1,3 +1,9 @@
+#include "config.h"
+
+
+#ifdef M_USE_BT
+
+
 /*
  * Copyright (C) 2014 BlueKitchen GmbH
  *
@@ -56,7 +62,6 @@
  
 #include <btstack.h>
 
-#include "config.h"
 
 #define RFCOMM_SERVER_CHANNEL 1
 #define HEARTBEAT_PERIOD_MS 1000
@@ -297,3 +302,6 @@ int bt_gatt_server_init()
 	
 	return 0;
 }
+
+
+#endif /* M_USE_BT */

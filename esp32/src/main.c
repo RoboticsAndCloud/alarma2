@@ -31,6 +31,8 @@ int led_on = 1;
 
 static const char* tag = "ESP32ALARMA2";
 
+extern void hcsr04_init();
+
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
@@ -117,20 +119,76 @@ static void task_blinking_led(void* pvParameter)
 }
 
 
-void btstack_main(void)
+static void buzzer_off(/*void* pvParameter*/)
 {
-    nvs_flash_init();
+	gpio_set_direction(GPIO_NUM_15, GPIO_MODE_OUTPUT);
+	gpio_set_level(GPIO_NUM_15, 0);
+}
+
+
+void read_settings()
+{
+	nvs_handle my_handle;
+	const char* CFG_BOOT_CNT = "bootcnt";
+	int8_t bootcnt = 0;
+	esp_err_t err;
+
+	err = nvs_open("storage", NVS_READWRITE, &my_handle);
+	if (err != ESP_OK)
+	{
+		ESP_LOGI(tag, "[nvs] could not open storage");
+		return;
+	}
+
+	err = nvs_get_i8(my_handle, CFG_BOOT_CNT, &bootcnt);
+	if (err == ESP_OK)
+		++bootcnt;
+
+	err = nvs_set_i8(my_handle, CFG_BOOT_CNT, bootcnt);
+	if (err != ESP_OK)
+	{
+		ESP_LOGI(tag, "[nvs] could not write");
+		return;
+	}
+
+	err = nvs_commit(my_handle);
+	if (err != ESP_OK)
+	{
+		ESP_LOGE(tag, "[nvs] coult not commit");
+		return;
+	}
+
+	ESP_LOGI(tag, "[nvs] boot cnt: %d", bootcnt);
+}
+
+
+void app_main(void)
+{
+	esp_err_t err = nvs_flash_init();
+	if (err == ESP_OK)
+	{
+		read_settings();
+	}
+	else
+		ESP_LOGI(tag, "nvs returned with an error.");
 
     ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
 
+	/*
+	hcsr04_init();
+
+	for(;;);
+	*/
 //	wifi_init();
 
-	bt_gatt_server_init();
+//	bt_gatt_server_init();
+//
+	buzzer_off();
 
 	i2c_master_init();
 
 //	xTaskCreate(&http_server, "http_server", 2048, NULL, 5, NULL);
-	xTaskCreate(&task_blinking_led, "blinking_led", 2048, NULL, 5, NULL);
+//	xTaskCreate(&task_blinking_led, "blinking_led", 2048, NULL, 5, NULL);
 	xTaskCreate(&task_i2c_test, "task_i2c_test", 2048, NULL, 5, NULL);
 }
 
