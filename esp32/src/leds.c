@@ -11,37 +11,70 @@
 #include "i2c.h"
 
 
-static QueueHandle_t m_queue;
+static SemaphoreHandle_t m_access_mutex;
+static uint8_t m_mode = 0;
 static const char* M_TAG = "leds";
 
 
-void leds_on()
+void leds_mode(uint8_t mode)
 {
-	uint8_t val = 0x00;
-	xQueueSend(m_queue, &val, portMAX_DELAY);
+	xSemaphoreTake(m_access_mutex, portMAX_DELAY);
+	m_mode = mode;
+	xSemaphoreGive(m_access_mutex);
 }
 
 
-void leds_off()
+static inline void i2c_send(uint8_t val)
 {
-	uint8_t val = 0xff;
-	xQueueSend(m_queue, &val, portMAX_DELAY);
+	i2c_master_write_slave(MY_LEDS_I2C_ADDR, &val, 1);
+}
+
+
+static uint8_t get_mode()
+{
+	uint8_t mode;
+	xSemaphoreTake(m_access_mutex, portMAX_DELAY);
+	mode = m_mode;
+	xSemaphoreGive(m_access_mutex);
+	return mode;
 }
 
 
 void leds_task(void* pvParameter)
 {
-	uint8_t val;
+	uint8_t prev_mode = -1;
+	uint8_t mode = -1;
 	for (;;)
 	{
-		xQueueReceive(m_queue, &val, portMAX_DELAY);
-		i2c_master_write_slave(MY_LEDS_I2C_ADDR, &val, 1);
+		prev_mode = mode;
+		xSemaphoreTake(m_access_mutex, portMAX_DELAY);
+		mode = m_mode;
+		xSemaphoreGive(m_access_mutex);
+
+		switch (m_mode)
+		{
+		case MY_LEDS_MODE_OFF:
+			i2c_send(0xff);
+			break;
+		case MY_LEDS_MODE_ON:
+			i2c_send(0x00);
+			break;
+		case MY_LEDS_MODE_ERROR:
+			while (mode == get_mode())
+			{
+				i2c_send(0xff);
+				vTaskDelay(200 / portTICK_PERIOD_MS);
+				i2c_send(0x00);
+				vTaskDelay(200 / portTICK_PERIOD_MS);
+			}
+			break;
+		}
 	}
 }
 
 void leds_init()
 {
-	m_queue = xQueueCreate(10, sizeof(uint8_t));
+	m_access_mutex = xSemaphoreCreateMutex();
 
 	xTaskCreate(&leds_task, "leds_task", 2048, NULL, 5, NULL);
 }

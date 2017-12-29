@@ -75,19 +75,40 @@ static void wifi_init()
 
 static void main_task(void* pvParameter)
 {
-	uint8_t val = 0xff;
+	leds_mode(MY_LEDS_MODE_OFF);
 
+	ESP_LOGI(M_TAG, "Ready");
 	for (;;)
 	{
 		float distance = hcsr04_get_distance();
 		char key = keypad_get_pressed();
-		ESP_LOGI(M_TAG, "distance..: %.1f", distance);
-		ESP_LOGI(M_TAG, "key.......: %c", key);
+//		ESP_LOGI(M_TAG, "distance..: %.1f", distance);
+//		ESP_LOGI(M_TAG, "key.......: %c", key);
 
-		leds_off();
+		switch (key)
+		{
+		case 'A':
+			ESP_LOGI(M_TAG, "A");
+			leds_mode(MY_LEDS_MODE_OFF);
+			break;
+		case 'B':
+			ESP_LOGI(M_TAG, "B");
+			leds_mode(MY_LEDS_MODE_ON);
+			break;
+		case 'C':
+			ESP_LOGI(M_TAG, "C");
+			leds_mode(MY_LEDS_MODE_ERROR);
+			break;
+		}
+
+		vTaskDelay(10 / portTICK_PERIOD_MS);
+
+#if 0
+		leds_mode(MY_LEDS_MODE_OFF);
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
-		leds_on();
+		leds_mode(MY_LEDS_MODE_ON);
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
+#endif
 	}
 }
 

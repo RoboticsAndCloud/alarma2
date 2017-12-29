@@ -11,9 +11,11 @@
 #include "config.h"
 
 
+#define MY_INVALID_KEY 'X'
+
 static const char* M_TAG = "alarma2/keypad";
 static SemaphoreHandle_t m_access_mutex;
-static char m_key_pressed = 'X';
+static char m_key_pressed = MY_INVALID_KEY;
 
 
 static char key2char[16][2] = {
@@ -83,7 +85,7 @@ static void keypad_task(void* pvParameter)
 	{
 		key = keypad_poll_keys();
 
-		if (key != -1 && key != m_key_pressed)
+		if (key != (char)-1 && key != m_key_pressed)
 		{
 			xSemaphoreTake(m_access_mutex, portMAX_DELAY);
        		m_key_pressed = key;
@@ -101,6 +103,7 @@ char keypad_get_pressed()
 {
 	xSemaphoreTake(m_access_mutex, portMAX_DELAY);
 	char val = m_key_pressed;
+	m_key_pressed = MY_INVALID_KEY;
 	xSemaphoreGive(m_access_mutex);
 	return val;
 }
