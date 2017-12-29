@@ -29,6 +29,7 @@
 #include "i2c.h"
 #include "hcsr04.h"
 #include "leds.h"
+#include "keypad.h"
 
 
 int led_on = 1;
@@ -79,16 +80,14 @@ static void main_task(void* pvParameter)
 	for (;;)
 	{
 		float distance = hcsr04_get_distance();
-		ESP_LOGI(M_TAG, "distance: %.1f", distance);
+		char key = keypad_get_pressed();
+		ESP_LOGI(M_TAG, "distance..: %.1f", distance);
+		ESP_LOGI(M_TAG, "key.......: %c", key);
 
 		leds_off();
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 		leds_on();
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-		// read keypad
-		i2c_master_read_slave(MY_KEYPAD_I2C_ADDR, &val, 1);
-		ESP_LOGI(M_TAG, "keypad: 0x%x", val);
 	}
 }
 
@@ -165,8 +164,15 @@ void app_main(void)
 
 	buzzer_off();
 	hcsr04_init();
-	i2c_master_init();
+	i2c_master_init(GPIO_NUM_16, GPIO_NUM_17);
 
+#if 0
+	for (int i=0; i<127; ++i)
+		if (i2c_master_scan(i) == ESP_OK)
+			ESP_LOGI(M_TAG, "i2c-device @0x%x", i);
+#endif
+
+	keypad_init();
 	leds_init();
 
 //	wifi_init();

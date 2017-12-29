@@ -7,6 +7,7 @@
  *
  *
  */
+#include "sdkconfig.h"
 #include "i2c.h"
 
 
@@ -20,27 +21,24 @@
 #define I2C_MASTER_SCL_IO    17    /*!< gpio number for I2C master clock */
 #define I2C_MASTER_SDA_IO    16    /*!< gpio number for I2C master data  */
 #define I2C_MASTER_NUM I2C_NUM_1   /*!< I2C port number for master dev */
-#define I2C_MASTER_TX_BUF_DISABLE   0   /*!< I2C master do not need buffer */
-#define I2C_MASTER_RX_BUF_DISABLE   0   /*!< I2C master do not need buffer */
-#define I2C_MASTER_FREQ_HZ 100000 /*!< I2C master clock frequency */
+#define I2C_MASTER_FREQ_HZ 100000 // I2C master clock frequency
 
 
 /**
  * @brief i2c master initialization
  */
-esp_err_t i2c_master_init()
+esp_err_t i2c_master_init(gpio_num_t sda, gpio_num_t scl)
 {
-    int i2c_master_port = I2C_MASTER_NUM;
     i2c_config_t conf;
     conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = I2C_MASTER_SDA_IO;
+    conf.sda_io_num = sda;
+    conf.scl_io_num = scl;
     conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.scl_io_num = I2C_MASTER_SCL_IO;
     conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
     conf.master.clk_speed = I2C_MASTER_FREQ_HZ;
-    i2c_param_config(i2c_master_port, &conf);
+    i2c_param_config(I2C_MASTER_NUM, &conf);
 
-	return i2c_driver_install(i2c_master_port, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
+	return i2c_driver_install(I2C_MASTER_NUM, conf.mode, 0, 0, 0);
 }
 
 
@@ -49,10 +47,11 @@ esp_err_t i2c_master_write_slave(uint8_t addr, uint8_t* data_wr, size_t size)
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
 
     i2c_master_start(cmd);
-	i2c_master_write_byte(cmd, ( addr << 1 ) | WRITE_BIT, ACK_CHECK_EN);
-    i2c_master_write(cmd, data_wr, size, ACK_CHECK_EN);
+	i2c_master_write_byte(cmd, ( addr << 1 ) | I2C_MASTER_WRITE, true);
+    i2c_master_write(cmd, data_wr, size, true);
     i2c_master_stop(cmd);
-	esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
+
+	esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 100 / portTICK_PERIOD_MS);
 
     i2c_cmd_link_delete(cmd);
     return ret;
@@ -70,18 +69,38 @@ esp_err_t i2c_master_write_slave(uint8_t addr, uint8_t* data_wr, size_t size)
  */
 esp_err_t i2c_master_read_slave(i2c_port_t addr, uint8_t* data_rd, size_t size)
 {
-	if (size == 0) {
+	if (size == 0)
 		return ESP_OK;
-	}
+
 	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+
 	i2c_master_start(cmd);
-	i2c_master_write_byte(cmd, ( addr << 1 ) | READ_BIT, ACK_CHECK_EN);
+	i2c_master_write_byte(cmd, ( addr << 1 ) | READ_BIT, true);
 	if (size > 1) {
 		i2c_master_read(cmd, data_rd, size - 1, ACK_VAL);
 	}
 	i2c_master_read_byte(cmd, data_rd + size - 1, NACK_VAL);
 	i2c_master_stop(cmd);
-	esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
+
+	esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 100 / portTICK_PERIOD_MS);
+
 	i2c_cmd_link_delete(cmd);
+
+	return ret;
+}
+
+
+esp_err_t i2c_master_scan(i2c_port_t addr)
+{
+	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+
+	i2c_master_start(cmd);
+	i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
+	i2c_master_stop(cmd);
+
+	esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 100 / portTICK_PERIOD_MS);
+
+	i2c_cmd_link_delete(cmd);
+
 	return ret;
 }

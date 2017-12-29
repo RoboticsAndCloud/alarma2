@@ -36,7 +36,6 @@ void leds_task(void* pvParameter)
 	{
 		xQueueReceive(m_queue, &val, portMAX_DELAY);
 		i2c_master_write_slave(MY_LEDS_I2C_ADDR, &val, 1);
-		ESP_LOGI(M_TAG, "puh");
 	}
 }
 

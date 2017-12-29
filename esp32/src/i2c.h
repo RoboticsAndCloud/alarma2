@@ -4,7 +4,10 @@
 #include <driver/i2c.h>
 
 
-esp_err_t i2c_master_init();
+esp_err_t i2c_master_init(gpio_num_t sda, gpio_num_t scl);
+
+
+esp_err_t i2c_master_scan(i2c_port_t addr);
 
 
 esp_err_t i2c_master_write_slave(uint8_t addr, uint8_t* data_wr, size_t size);
