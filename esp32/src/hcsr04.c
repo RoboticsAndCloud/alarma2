@@ -4,21 +4,28 @@
  * https://github.com/espressif/esp-idf/tree/master/examples/peripherals/rmt_nec_tx_rx
  *
  */
-#include <stdio.h>
-#include <string.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
-#include "esp_err.h"
-#include "esp_log.h"
-#include "driver/rmt.h"
-#include "driver/periph_ctrl.h"
-#include "soc/rmt_reg.h"
-
 #include "sdkconfig.h"
 
-static const char* NEC_TAG = "HCSR04";
+#include <stdio.h>
+#include <string.h>
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/queue.h>
+#include <freertos/semphr.h>
+#include <esp_err.h>
+#include <esp_log.h>
+#include <driver/rmt.h>
+#include <driver/periph_ctrl.h>
+#include <soc/rmt_reg.h>
+
+
+static SemaphoreHandle_t m_access_mutex;
+static float m_hcsr04_distance_cm = 0.0;
+
+
+
+static const char* M_TAG = "HCSR04";
 
 
 #define RMT_TX_CHANNEL    1     /*!< RMT channel for transmitter */
@@ -115,10 +122,16 @@ static void rx_task()
         if (item)
         {
         	for (int i=0; i<rx_size / sizeof(rmt_item32_t); ++i)
-        		ESP_LOGI(NEC_TAG, "RMT RCV -- %d:%d | %d:%d : %.1fcm",
+        	{
+				xSemaphoreTake(m_access_mutex, portMAX_DELAY);
+        		m_hcsr04_distance_cm = (float)TICKS2US((item[i].duration0) / 58.2);
+        		xSemaphoreGive(m_access_mutex);
+
+        		ESP_LOGD(M_TAG, "RMT RCV -- %d:%d | %d:%d : %.1fcm",
 						item[i].level0, TICKS2US(item[i].duration0),
 						item[i].level1, TICKS2US(item[i].duration1),
-						(float)TICKS2US(item[i].duration0) / 58.2);
+						m_hcsr04_distance_cm);
+        	}
             //after parsing the data, return spaces to ringbuffer.
             vRingbufferReturnItem(rb, (void*) item);
         } else {
@@ -150,7 +163,7 @@ static void tx_task()
 
     for (;;)
 	{
-        ESP_LOGI(NEC_TAG, "RMT TX DATA");
+//        ESP_LOGI(M_TAG, "RMT TX DATA");
 
         // To send data according to the waveform items.
         rmt_write_items(channel, item, item_num, true);
@@ -165,8 +178,18 @@ static void tx_task()
 }
 
 
+float hcsr04_get_distance()
+{
+	xSemaphoreTake(m_access_mutex, portMAX_DELAY);
+	float val = m_hcsr04_distance_cm;
+	xSemaphoreGive(m_access_mutex);
+	return val;
+}
+
+
 void hcsr04_init()
 {
+	m_access_mutex = xSemaphoreCreateMutex();
     xTaskCreate(rx_task, "rx_task", 2048, NULL, 10, NULL);
     xTaskCreate(tx_task, "tx_task", 2048, NULL, 10, NULL);
 }

@@ -8,6 +8,8 @@
  * https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/ble_adv
  *
  */
+#include "sdkconfig.h"
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -25,14 +27,13 @@
 #include "http_server.h"
 #include "bt.h"
 #include "i2c.h"
+#include "hcsr04.h"
+#include "leds.h"
 
 
 int led_on = 1;
 
-static const char* tag = "ESP32ALARMA2";
-
-extern void hcsr04_init();
-
+static const char* M_TAG = "ESP32ALARMA2";
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
@@ -67,32 +68,27 @@ static void wifi_init()
     ESP_ERROR_CHECK( esp_wifi_start() );
     ESP_ERROR_CHECK( esp_wifi_connect() );
 
-	ESP_LOGI(tag, "Wifi ready.");
+	ESP_LOGI(M_TAG, "Wifi ready.");
 }
 
 
-
-static void task_i2c_test()
+static void main_task(void* pvParameter)
 {
 	uint8_t val = 0xff;
 
 	for (;;)
 	{
-		val = 0xff;
-		i2c_master_write_slave(MY_LEDS_I2C_ADDR, &val, 1);
+		float distance = hcsr04_get_distance();
+		ESP_LOGI(M_TAG, "distance: %.1f", distance);
 
-//		led_on = 0;
+		leds_off();
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-		val = 0x00;
-		i2c_master_write_slave(MY_LEDS_I2C_ADDR, &val, 1);
-
-//		led_on = 1;
+		leds_on();
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 		// read keypad
 		i2c_master_read_slave(MY_KEYPAD_I2C_ADDR, &val, 1);
-		ESP_LOGI(tag, "keypad: 0x%x", val);
+		ESP_LOGI(M_TAG, "keypad: 0x%x", val);
 	}
 }
 
@@ -136,7 +132,7 @@ void read_settings()
 	err = nvs_open("storage", NVS_READWRITE, &my_handle);
 	if (err != ESP_OK)
 	{
-		ESP_LOGI(tag, "[nvs] could not open storage");
+		ESP_LOGI(M_TAG, "[nvs] could not open storage");
 		return;
 	}
 
@@ -147,48 +143,40 @@ void read_settings()
 	err = nvs_set_i8(my_handle, CFG_BOOT_CNT, bootcnt);
 	if (err != ESP_OK)
 	{
-		ESP_LOGI(tag, "[nvs] could not write");
+		ESP_LOGI(M_TAG, "[nvs] could not write");
 		return;
 	}
 
 	err = nvs_commit(my_handle);
 	if (err != ESP_OK)
 	{
-		ESP_LOGE(tag, "[nvs] coult not commit");
+		ESP_LOGE(M_TAG, "[nvs] coult not commit");
 		return;
 	}
 
-	ESP_LOGI(tag, "[nvs] boot cnt: %d", bootcnt);
+	ESP_LOGI(M_TAG, "[nvs] boot cnt: %d", bootcnt);
 }
 
 
 void app_main(void)
 {
-	esp_err_t err = nvs_flash_init();
-	if (err == ESP_OK)
-	{
-		read_settings();
-	}
-	else
-		ESP_LOGI(tag, "nvs returned with an error.");
-
+	ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
 
-	/*
+	buzzer_off();
 	hcsr04_init();
+	i2c_master_init();
 
-	for(;;);
-	*/
+	leds_init();
+
 //	wifi_init();
-
 //	bt_gatt_server_init();
 //
-	buzzer_off();
 
-	i2c_master_init();
 
 //	xTaskCreate(&http_server, "http_server", 2048, NULL, 5, NULL);
 //	xTaskCreate(&task_blinking_led, "blinking_led", 2048, NULL, 5, NULL);
-	xTaskCreate(&task_i2c_test, "task_i2c_test", 2048, NULL, 5, NULL);
+//	xTaskCreate(&task_i2c_test, "task_i2c_test", 2048, NULL, 5, NULL);
+	xTaskCreate(&main_task, "main_task", 2048, NULL, 5, NULL);
 }
 
