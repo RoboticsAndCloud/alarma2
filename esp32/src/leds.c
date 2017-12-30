@@ -13,7 +13,7 @@
 
 static SemaphoreHandle_t m_access_mutex;
 static uint8_t m_mode = 0;
-static const char* M_TAG = "leds";
+static const char* M_TAG = "alarma/leds";
 
 
 void leds_mode(uint8_t mode)
@@ -54,12 +54,29 @@ void leds_task(void* pvParameter)
 		switch (m_mode)
 		{
 		case MY_LEDS_MODE_OFF:
+			ESP_LOGI(M_TAG, "mode=OFF");
 			i2c_send(0xff);
 			break;
 		case MY_LEDS_MODE_ON:
 			i2c_send(0x00);
 			break;
 		case MY_LEDS_MODE_ERROR:
+			for (int i=0; i<2; ++i)
+			{
+				i2c_send(0xff);
+				vTaskDelay(200 / portTICK_PERIOD_MS);
+				i2c_send(0x00);
+				vTaskDelay(200 / portTICK_PERIOD_MS);
+			}
+			leds_mode(MY_LEDS_MODE_OFF);
+			break;
+		case MY_LEDS_MODE_ACTIVATED:
+			i2c_send(0xf9);	// beide grüne oben an
+			break;
+		case MY_LEDS_MODE_INPUT:
+			i2c_send(0x0f);	// beide vorne an
+			break;
+		case MY_LEDS_MODE_ALARM:
 			while (mode == get_mode())
 			{
 				i2c_send(0xff);
@@ -67,7 +84,6 @@ void leds_task(void* pvParameter)
 				i2c_send(0x00);
 				vTaskDelay(200 / portTICK_PERIOD_MS);
 			}
-			break;
 		}
 	}
 }

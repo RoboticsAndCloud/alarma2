@@ -9,13 +9,12 @@
 
 #include "i2c.h"
 #include "config.h"
+#include "keypad.h"
 
-
-#define MY_INVALID_KEY 'X'
 
 static const char* M_TAG = "alarma2/keypad";
 static SemaphoreHandle_t m_access_mutex;
-static char m_key_pressed = MY_INVALID_KEY;
+static char m_key_pressed = KEYPAD_NO_INPUT;
 
 
 static char key2char[16][2] = {
@@ -84,14 +83,21 @@ static void keypad_task(void* pvParameter)
 	for (;;)
 	{
 		key = keypad_poll_keys();
-
-		if (key != (char)-1 && key != m_key_pressed)
+		// pressed
+		if (key != (char)-1)
 		{
-			xSemaphoreTake(m_access_mutex, portMAX_DELAY);
-       		m_key_pressed = key;
-       		xSemaphoreGive(m_access_mutex);
+			// wait for release
+			while (keypad_poll_keys() != (char)-1)
+				vTaskDelay(100 / portTICK_PERIOD_MS);
 
-			ESP_LOGI(M_TAG, "new-key: %d", m_key_pressed);
+			if (key != m_key_pressed)
+			{
+				xSemaphoreTake(m_access_mutex, portMAX_DELAY);
+				   m_key_pressed = key;
+				   xSemaphoreGive(m_access_mutex);
+
+				ESP_LOGI(M_TAG, "new-key: %d", m_key_pressed);
+			}
 		}
 
 		vTaskDelay(100 / portTICK_PERIOD_MS);
@@ -103,7 +109,7 @@ char keypad_get_pressed()
 {
 	xSemaphoreTake(m_access_mutex, portMAX_DELAY);
 	char val = m_key_pressed;
-	m_key_pressed = MY_INVALID_KEY;
+	m_key_pressed = KEYPAD_NO_INPUT;
 	xSemaphoreGive(m_access_mutex);
 	return val;
 }

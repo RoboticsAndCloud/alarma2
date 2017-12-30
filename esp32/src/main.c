@@ -10,6 +10,8 @@
  */
 #include "sdkconfig.h"
 
+#include <string.h>
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -22,6 +24,9 @@
 #include <driver/gpio.h>
 
 #include <lwip/netdb.h>
+#include <lwip/sockets.h>
+
+#include <tcpip_adapter.h>
 
 #include "config.h"
 #include "http_server.h"
@@ -35,6 +40,8 @@
 int led_on = 1;
 
 static const char* M_TAG = "ESP32ALARMA2";
+
+static const char* M_PASSWORD = "123";
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
@@ -73,9 +80,41 @@ static void wifi_init()
 }
 
 
+/**
+ * FIXME: need a timeout here
+ */
+static bool check_password()
+{
+	leds_mode(MY_LEDS_MODE_INPUT);
+
+	ESP_LOGI(M_TAG, "do-activate");
+	char key = KEYPAD_NO_INPUT;
+
+	// next X keys are for us
+	for (int i=0; i<strlen(M_PASSWORD); ++i)
+	{
+		while (key == KEYPAD_NO_INPUT)
+		{
+			vTaskDelay(10 / portTICK_PERIOD_MS);
+			key = keypad_get_pressed();
+		}
+
+		ESP_LOGI(M_TAG, "do-activate-check: %c == %c", M_PASSWORD[i], key);
+		if (M_PASSWORD[i] != key)
+			return false;
+
+		key = KEYPAD_NO_INPUT;
+	}
+
+	return true;
+}
+
+
 static void main_task(void* pvParameter)
 {
 	leds_mode(MY_LEDS_MODE_OFF);
+
+	bool activated = false;
 
 	ESP_LOGI(M_TAG, "Ready");
 	for (;;)
@@ -87,9 +126,16 @@ static void main_task(void* pvParameter)
 
 		switch (key)
 		{
-		case 'A':
-			ESP_LOGI(M_TAG, "A");
-			leds_mode(MY_LEDS_MODE_OFF);
+		case 'A': // activate
+			ESP_LOGI(M_TAG, "Aenter");
+			if (check_password())
+			{
+				activated = true;
+				leds_mode(MY_LEDS_MODE_ACTIVATED);
+			}
+			else
+				leds_mode(MY_LEDS_MODE_ERROR);
+			ESP_LOGI(M_TAG, "Aleave");
 			break;
 		case 'B':
 			ESP_LOGI(M_TAG, "B");
@@ -99,6 +145,14 @@ static void main_task(void* pvParameter)
 			ESP_LOGI(M_TAG, "C");
 			leds_mode(MY_LEDS_MODE_ERROR);
 			break;
+		case 'D':
+			if (check_password())
+			{
+				activated = false;
+				leds_mode(MY_LEDS_MODE_OFF);
+			}
+			else
+				leds_mode(MY_LEDS_MODE_ALARM);
 		}
 
 		vTaskDelay(10 / portTICK_PERIOD_MS);
@@ -113,6 +167,7 @@ static void main_task(void* pvParameter)
 }
 
 
+#if 0
 static void task_blinking_led(void* pvParameter)
 {
 	gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
@@ -133,12 +188,13 @@ static void task_blinking_led(void* pvParameter)
 		vTaskDelay(300 / portTICK_PERIOD_MS);
     }
 }
+#endif
 
 
-static void buzzer_off(/*void* pvParameter*/)
+static void buzzer(bool on)
 {
 	gpio_set_direction(GPIO_NUM_15, GPIO_MODE_OUTPUT);
-	gpio_set_level(GPIO_NUM_15, 0);
+	gpio_set_level(GPIO_NUM_15, on ? 1 : 0);
 }
 
 
@@ -183,7 +239,14 @@ void app_main(void)
 	ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
 
-	buzzer_off();
+    for (int i=0; i<3; ++i)
+    {
+		buzzer(true);
+		vTaskDelay(500 / portTICK_PERIOD_MS);
+		buzzer(false);
+		vTaskDelay(500 / portTICK_PERIOD_MS);
+    }
+
 	hcsr04_init();
 	i2c_master_init(GPIO_NUM_16, GPIO_NUM_17);
 
