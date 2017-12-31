@@ -96,7 +96,7 @@ static void keypad_task(void* pvParameter)
 				   m_key_pressed = key;
 				   xSemaphoreGive(m_access_mutex);
 
-				ESP_LOGI(M_TAG, "new-key: %d", m_key_pressed);
+				ESP_LOGI(M_TAG, "new-key: %c", m_key_pressed);
 			}
 		}
 

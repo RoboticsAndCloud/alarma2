@@ -11,6 +11,7 @@ void leds_init();
 #define MY_LEDS_MODE_ACTIVATED	3
 #define MY_LEDS_MODE_INPUT		4
 #define MY_LEDS_MODE_ALARM		5
+#define MY_LEDS_MODE_DEMO		6
 
 void leds_mode(uint8_t mode);
 

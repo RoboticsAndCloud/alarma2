@@ -43,12 +43,14 @@ static const char* M_TAG = "ESP32ALARMA2";
 
 static const char* M_PASSWORD = "123";
 
+
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
     return ESP_OK;
 }
 
 
+#if 0
 static void wifi_init()
 {
     tcpip_adapter_init();
@@ -78,6 +80,15 @@ static void wifi_init()
 
 	ESP_LOGI(M_TAG, "Wifi ready.");
 }
+#endif
+
+
+static void buzzer(bool on)
+{
+	gpio_pad_select_gpio(GPIO_NUM_15);
+	gpio_set_direction(GPIO_NUM_15, GPIO_MODE_OUTPUT);
+	gpio_set_level(GPIO_NUM_15, on ? 1 : 0);
+}
 
 
 /**
@@ -85,8 +96,6 @@ static void wifi_init()
  */
 static bool check_password()
 {
-	leds_mode(MY_LEDS_MODE_INPUT);
-
 	ESP_LOGI(M_TAG, "do-activate");
 	char key = KEYPAD_NO_INPUT;
 
@@ -115,6 +124,7 @@ static void main_task(void* pvParameter)
 	leds_mode(MY_LEDS_MODE_OFF);
 
 	bool activated = false;
+	float alarm_distance = 0.0;
 
 	ESP_LOGI(M_TAG, "Ready");
 	for (;;)
@@ -124,35 +134,57 @@ static void main_task(void* pvParameter)
 //		ESP_LOGI(M_TAG, "distance..: %.1f", distance);
 //		ESP_LOGI(M_TAG, "key.......: %c", key);
 
+		if (activated && distance < alarm_distance)
+		{
+			buzzer(true);
+			leds_mode(MY_LEDS_MODE_ALARM);
+		}
+
 		switch (key)
 		{
 		case 'A': // activate
-			ESP_LOGI(M_TAG, "Aenter");
-			if (check_password())
+			ESP_LOGI(M_TAG, "A");
+			if (!activated)
 			{
-				activated = true;
-				leds_mode(MY_LEDS_MODE_ACTIVATED);
+				leds_mode(MY_LEDS_MODE_INPUT);
+				if (check_password())
+				{
+					activated = true;
+					alarm_distance = distance - 10.0;
+					leds_mode(MY_LEDS_MODE_ACTIVATED);
+				}
+				else
+					leds_mode(MY_LEDS_MODE_ERROR);
 			}
-			else
-				leds_mode(MY_LEDS_MODE_ERROR);
-			ESP_LOGI(M_TAG, "Aleave");
 			break;
 		case 'B':
 			ESP_LOGI(M_TAG, "B");
-			leds_mode(MY_LEDS_MODE_ON);
+			if (!activated)
+			{
+				buzzer(true);
+				vTaskDelay(250 / portTICK_PERIOD_MS);
+				buzzer(false);
+			}
 			break;
 		case 'C':
 			ESP_LOGI(M_TAG, "C");
-			leds_mode(MY_LEDS_MODE_ERROR);
+			if (!activated)
+			{
+				leds_mode(MY_LEDS_MODE_DEMO);
+			}
 			break;
 		case 'D':
-			if (check_password())
+			ESP_LOGI(M_TAG, "D");
+			if (activated)
 			{
-				activated = false;
-				leds_mode(MY_LEDS_MODE_OFF);
+				if (check_password())
+				{
+					activated = false;
+					buzzer(false);
+					leds_mode(MY_LEDS_MODE_OFF);
+				}
 			}
-			else
-				leds_mode(MY_LEDS_MODE_ALARM);
+			break;
 		}
 
 		vTaskDelay(10 / portTICK_PERIOD_MS);
@@ -189,13 +221,6 @@ static void task_blinking_led(void* pvParameter)
     }
 }
 #endif
-
-
-static void buzzer(bool on)
-{
-	gpio_set_direction(GPIO_NUM_15, GPIO_MODE_OUTPUT);
-	gpio_set_level(GPIO_NUM_15, on ? 1 : 0);
-}
 
 
 void read_settings()
@@ -242,9 +267,9 @@ void app_main(void)
     for (int i=0; i<3; ++i)
     {
 		buzzer(true);
-		vTaskDelay(500 / portTICK_PERIOD_MS);
+		vTaskDelay(100 / portTICK_PERIOD_MS);
 		buzzer(false);
-		vTaskDelay(500 / portTICK_PERIOD_MS);
+		vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 
 	hcsr04_init();
