@@ -39,3 +39,15 @@ extern int led_on;
 
 Use this to import the project in QtCreator, sort of...
 
+## Bluetooth
+
+Default password: 123
+
+Return value is capital letter on success or 'E' on error.
+
+`a????` - activate. Requires password.
+`b` - buzzer. Only when deactivated.
+`c` - NOP.
+`d????` - deactivate. Requires password.
+`p?????` - new password. Only when activated.
+

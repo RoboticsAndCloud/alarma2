@@ -31,7 +31,6 @@
 
 #include "config.h"
 #include "http_server.h"
-#include "bt.h"
 #include "i2c.h"
 #include "hcsr04.h"
 #include "leds.h"
@@ -43,7 +42,7 @@ int led_on = 1;
 
 static const char* M_TAG = "ESP32ALARMA2";
 
-static const char* M_PASSWORD = "123";
+static char* m_password = "123";
 
 static SemaphoreHandle_t m_bt_access;
 static char m_bt_action = 'x';
@@ -73,7 +72,7 @@ static bool check_password()
 	bool okay = true;
 
 	// next X keys are for us
-	for (int i=0; i<strlen(M_PASSWORD); ++i)
+	for (int i=0; i<strlen(m_password); ++i)
 	{
 		while (key == KEYPAD_NO_INPUT)
 		{
@@ -81,8 +80,8 @@ static bool check_password()
 			key = keypad_get_pressed();
 		}
 
-		ESP_LOGI(M_TAG, "do-activate-check: %c == %c", M_PASSWORD[i], key);
-		if (M_PASSWORD[i] != key)
+		ESP_LOGI(M_TAG, "do-activate-check: %c == %c", m_password[i], key);
+		if (m_password[i] != key)
 			okay = false;
 
 		key = KEYPAD_NO_INPUT;
@@ -191,6 +190,9 @@ static void main_task(void* pvParameter)
 			m_bt_action = 'x';
 			main_deactivate();
 			break;
+		case 'p':
+			vTaskDelay(1000 / portTICK_PERIOD_MS);
+			esp_restart();
 		}
 
 		vTaskDelay(10 / portTICK_PERIOD_MS);
@@ -205,23 +207,27 @@ static void main_task(void* pvParameter)
 }
 
 
+static const char* CFG_BOOT_CNT = "bootcnt";
+static const char* CFG_PASSWORD = "password";
+
 void read_settings()
 {
 	nvs_handle my_handle;
-	const char* CFG_BOOT_CNT = "bootcnt";
 	int8_t bootcnt = 0;
 	esp_err_t err;
 
-	err = nvs_open("storage", NVS_READWRITE, &my_handle);
-	if (err != ESP_OK)
-	{
-		ESP_LOGI(M_TAG, "[nvs] could not open storage");
-		return;
-	}
+	ESP_ERROR_CHECK(nvs_open("storage", NVS_READWRITE, &my_handle));
 
 	err = nvs_get_i8(my_handle, CFG_BOOT_CNT, &bootcnt);
 	if (err == ESP_OK)
 		++bootcnt;
+
+	size_t required_size;
+	if (nvs_get_str(my_handle, CFG_PASSWORD, NULL, &required_size) == ESP_OK)
+	{
+		m_password = malloc(required_size);
+		nvs_get_str(my_handle, CFG_PASSWORD, m_password, &required_size);
+	}
 
 	err = nvs_set_i8(my_handle, CFG_BOOT_CNT, bootcnt);
 	if (err != ESP_OK)
@@ -238,6 +244,7 @@ void read_settings()
 	}
 
 	ESP_LOGI(M_TAG, "[nvs] boot cnt: %d", bootcnt);
+	ESP_LOGI(M_TAG, "[nvs] password: %s", m_password);
 }
 
 
@@ -255,11 +262,11 @@ static uint8_t* bt_parser(uint8_t* data, uint16_t len, uint16_t* out_len)
 	switch (data[0])
 	{
 	case 'a':
-		if (len > strlen(M_PASSWORD))
+		if (len > strlen(m_password))
 		{
-			for (int i=0; i<strlen(M_PASSWORD); ++i)
-				if (data[i+1] != M_PASSWORD[i])
-					break;
+			for (int i=0; i<strlen(m_password); ++i)
+				if (data[i+1] != m_password[i])
+					return m_bt_buffer;
 			m_bt_buffer[0] = 'A';
 			m_bt_action = 'a';
 		}
@@ -273,13 +280,39 @@ static uint8_t* bt_parser(uint8_t* data, uint16_t len, uint16_t* out_len)
 		m_bt_action = 'c';
 		break;
 	case 'd':
-		if (len > strlen(M_PASSWORD))
+		if (len > strlen(m_password))
 		{
-			for (int i=0; i<strlen(M_PASSWORD); ++i)
-				if (data[i+1] != M_PASSWORD[i])
-					break;
+			for (int i=0; i<strlen(m_password); ++i)
+				if (data[i+1] != m_password[i])
+					return m_bt_buffer;
 			m_bt_buffer[0] = 'D';
 			m_bt_action = 'd';
+		}
+		break;
+	case 'p':
+		if (m_activated && len > 2)
+		{
+			// terminate password with a NULL
+			char* newpasswd = (char*)&data[1];
+			for (int i=1; i<len; ++i)
+			{
+				if (newpasswd[i] < '0' || newpasswd[i] > '9')
+				{
+					newpasswd[i] = 0;
+					break;
+				}
+			}
+
+			if (strlen(newpasswd) > 0)
+			{
+				nvs_handle my_handle;
+				ESP_ERROR_CHECK(nvs_open("storage", NVS_READWRITE, &my_handle));
+				nvs_set_str(my_handle, CFG_PASSWORD, newpasswd);
+
+				ESP_LOGI(M_TAG, "new-password: %s", newpasswd);
+				m_bt_buffer[0] = 'P';
+				m_bt_action = 'p';
+			}
 		}
 		break;
 	default:
@@ -293,6 +326,7 @@ static uint8_t* bt_parser(uint8_t* data, uint16_t len, uint16_t* out_len)
 void app_main(void)
 {
 	ESP_ERROR_CHECK(nvs_flash_init());
+	read_settings();
     ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
 
     for (int i=0; i<3; ++i)
