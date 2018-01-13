@@ -1,6 +1,6 @@
 # esp32
 
-Right now, we are toggling an LED only.
+![Sample session](docs/images/intro.png)
 
 ## Features
 
