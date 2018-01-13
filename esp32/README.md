@@ -7,6 +7,17 @@ Right now, we are toggling an LED only.
 * BT - SPP (serial communication)
 * WiFi - Returns OK
 
+## sdkconfig
+
+Required component configuration.
+
+```
+CONFIG_BT_ENABLED=y
+CONFIG_CLASSIC_BT_ENABLED=y
+CONFIG_WIFI_ENABLED=n
+CONFIG_BT_SPP_ENABLED=y
+````
+
 ## config.h
 
 ```c

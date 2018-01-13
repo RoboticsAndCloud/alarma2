@@ -14,6 +14,7 @@
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <freertos/semphr.h>
 
 #include <esp_wifi.h>
 #include <esp_system.h>
@@ -35,6 +36,7 @@
 #include "hcsr04.h"
 #include "leds.h"
 #include "keypad.h"
+#include "bt_rfcomm.h"
 
 
 int led_on = 1;
@@ -42,6 +44,8 @@ int led_on = 1;
 static const char* M_TAG = "ESP32ALARMA2";
 
 static const char* M_PASSWORD = "123";
+
+static SemaphoreHandle_t m_bt_access;
 
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
@@ -259,6 +263,39 @@ void read_settings()
 }
 
 
+#define BTMAXBUF 40
+static uint8_t m_bt_buffer[BTMAXBUF];
+static uint8_t* bt_parser(uint8_t* data, uint16_t len, uint16_t* out_len)
+{
+	if (len == 0)
+		return NULL;
+
+	m_bt_buffer[0] = 'E';
+	m_bt_buffer[1] = '\n';
+	*out_len = 2;
+
+	switch (data[0])
+	{
+	case 'a':
+		m_bt_buffer[0] = 'A';
+		break;
+	case 'b':
+		m_bt_buffer[0] = 'B';
+		break;
+	case 'c':
+		m_bt_buffer[0] = 'C';
+		break;
+	case 'd':
+		m_bt_buffer[0] = 'D';
+		break;
+	default:
+		break;
+	}
+
+	return m_bt_buffer;
+}
+
+
 void app_main(void)
 {
 	ESP_ERROR_CHECK(nvs_flash_init());
@@ -283,6 +320,9 @@ void app_main(void)
 
 	keypad_init();
 	leds_init();
+
+	m_bt_access = xSemaphoreCreateMutex();
+	bt_rfcomm_init(M_TAG, &bt_parser);
 
 //	wifi_init();
 //	bt_gatt_server_init();
