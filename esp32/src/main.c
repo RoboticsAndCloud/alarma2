@@ -46,45 +46,13 @@ static const char* M_TAG = "ESP32ALARMA2";
 static const char* M_PASSWORD = "123";
 
 static SemaphoreHandle_t m_bt_access;
+static char m_bt_action = 'x';
 
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
     return ESP_OK;
 }
-
-
-#if 0
-static void wifi_init()
-{
-    tcpip_adapter_init();
-
-	tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA); // no DHCP
-
-	tcpip_adapter_ip_info_t ipInfo;
-	inet_pton(AF_INET, CONFIG_ADDRESS, &ipInfo.ip);
-	inet_pton(AF_INET, CONFIG_GATEWAY, &ipInfo.gw);
-	inet_pton(AF_INET, CONFIG_NETMASK, &ipInfo.netmask);
-	tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_STA, &ipInfo);
-
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK( esp_wifi_init(&cfg) );
-    ESP_ERROR_CHECK( esp_wifi_set_storage(WIFI_STORAGE_RAM) );
-    ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
-    wifi_config_t sta_config = {
-        .sta = {
-            .ssid = CONFIG_SSID,
-            .password = CONFIG_PASSWORD,
-            .bssid_set = false
-        }
-    };
-    ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_STA, &sta_config) );
-    ESP_ERROR_CHECK( esp_wifi_start() );
-    ESP_ERROR_CHECK( esp_wifi_connect() );
-
-	ESP_LOGI(M_TAG, "Wifi ready.");
-}
-#endif
 
 
 static void buzzer(bool on)
@@ -102,6 +70,7 @@ static bool check_password()
 {
 	ESP_LOGI(M_TAG, "do-activate");
 	char key = KEYPAD_NO_INPUT;
+	bool okay = true;
 
 	// next X keys are for us
 	for (int i=0; i<strlen(M_PASSWORD); ++i)
@@ -114,21 +83,41 @@ static bool check_password()
 
 		ESP_LOGI(M_TAG, "do-activate-check: %c == %c", M_PASSWORD[i], key);
 		if (M_PASSWORD[i] != key)
-			return false;
+			okay = false;
 
 		key = KEYPAD_NO_INPUT;
 	}
 
-	return true;
+	return okay;
+}
+
+
+
+bool m_activated = false;
+float m_alarm_distance = 0.0;
+bool m_in_alarm = false;
+
+
+static void main_activate(float distance)
+{
+	m_activated = true;
+	m_in_alarm = false;
+	m_alarm_distance = distance - 10.0;
+	leds_mode(MY_LEDS_MODE_ACTIVATED);
+}
+
+
+static void main_deactivate()
+{
+	m_activated = false;
+	buzzer(false);
+	leds_mode(MY_LEDS_MODE_OFF);
 }
 
 
 static void main_task(void* pvParameter)
 {
 	leds_mode(MY_LEDS_MODE_OFF);
-
-	bool activated = false;
-	float alarm_distance = 0.0;
 
 	ESP_LOGI(M_TAG, "Ready");
 	for (;;)
@@ -138,32 +127,31 @@ static void main_task(void* pvParameter)
 //		ESP_LOGI(M_TAG, "distance..: %.1f", distance);
 //		ESP_LOGI(M_TAG, "key.......: %c", key);
 
-		if (activated && distance < alarm_distance)
+		if (m_activated && distance < m_alarm_distance)
 		{
-			buzzer(true);
-			leds_mode(MY_LEDS_MODE_ALARM);
+			if (!m_in_alarm)
+			{
+				buzzer(true);
+				leds_mode(MY_LEDS_MODE_ALARM);
+			}
 		}
 
 		switch (key)
 		{
 		case 'A': // activate
 			ESP_LOGI(M_TAG, "A");
-			if (!activated)
+			if (!m_activated)
 			{
 				leds_mode(MY_LEDS_MODE_INPUT);
 				if (check_password())
-				{
-					activated = true;
-					alarm_distance = distance - 10.0;
-					leds_mode(MY_LEDS_MODE_ACTIVATED);
-				}
+					main_activate(distance);
 				else
 					leds_mode(MY_LEDS_MODE_ERROR);
 			}
 			break;
 		case 'B':
 			ESP_LOGI(M_TAG, "B");
-			if (!activated)
+			if (!m_activated)
 			{
 				buzzer(true);
 				vTaskDelay(250 / portTICK_PERIOD_MS);
@@ -172,22 +160,36 @@ static void main_task(void* pvParameter)
 			break;
 		case 'C':
 			ESP_LOGI(M_TAG, "C");
-			if (!activated)
+			if (!m_activated)
 			{
 				leds_mode(MY_LEDS_MODE_DEMO);
 			}
 			break;
 		case 'D':
 			ESP_LOGI(M_TAG, "D");
-			if (activated)
+			if (m_activated && check_password())
+				main_deactivate();
+			break;
+		}
+
+		switch (m_bt_action)
+		{
+		case 'a':
+			m_bt_action = 'x';
+			main_activate(distance);
+			break;
+		case 'b':
+			m_bt_action = 'x';
+			if (!m_activated)
 			{
-				if (check_password())
-				{
-					activated = false;
-					buzzer(false);
-					leds_mode(MY_LEDS_MODE_OFF);
-				}
+				buzzer(true);
+				vTaskDelay(250 / portTICK_PERIOD_MS);
+				buzzer(false);
 			}
+			break;
+		case 'd':
+			m_bt_action = 'x';
+			main_deactivate();
 			break;
 		}
 
@@ -201,30 +203,6 @@ static void main_task(void* pvParameter)
 #endif
 	}
 }
-
-
-#if 0
-static void task_blinking_led(void* pvParameter)
-{
-	gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
-
-	gpio_set_level(GPIO_NUM_2, 1);
-	vTaskDelay(500 / portTICK_PERIOD_MS);
-	gpio_set_level(GPIO_NUM_2, 0);
-	vTaskDelay(500 / portTICK_PERIOD_MS);
-	gpio_set_level(GPIO_NUM_2, 1);
-	vTaskDelay(500 / portTICK_PERIOD_MS);
-	gpio_set_level(GPIO_NUM_2, 0);
-	vTaskDelay(500 / portTICK_PERIOD_MS);
-
-	led_on = 0;
-	while (true)
-	{
-		gpio_set_level(GPIO_NUM_2, led_on);
-		vTaskDelay(300 / portTICK_PERIOD_MS);
-    }
-}
-#endif
 
 
 void read_settings()
@@ -277,16 +255,32 @@ static uint8_t* bt_parser(uint8_t* data, uint16_t len, uint16_t* out_len)
 	switch (data[0])
 	{
 	case 'a':
-		m_bt_buffer[0] = 'A';
+		if (len > strlen(M_PASSWORD))
+		{
+			for (int i=0; i<strlen(M_PASSWORD); ++i)
+				if (data[i+1] != M_PASSWORD[i])
+					break;
+			m_bt_buffer[0] = 'A';
+			m_bt_action = 'a';
+		}
 		break;
 	case 'b':
 		m_bt_buffer[0] = 'B';
+		m_bt_action = 'b';
 		break;
 	case 'c':
 		m_bt_buffer[0] = 'C';
+		m_bt_action = 'c';
 		break;
 	case 'd':
-		m_bt_buffer[0] = 'D';
+		if (len > strlen(M_PASSWORD))
+		{
+			for (int i=0; i<strlen(M_PASSWORD); ++i)
+				if (data[i+1] != M_PASSWORD[i])
+					break;
+			m_bt_buffer[0] = 'D';
+			m_bt_action = 'd';
+		}
 		break;
 	default:
 		break;
@@ -324,14 +318,6 @@ void app_main(void)
 	m_bt_access = xSemaphoreCreateMutex();
 	bt_rfcomm_init(M_TAG, &bt_parser);
 
-//	wifi_init();
-//	bt_gatt_server_init();
-//
-
-
-//	xTaskCreate(&http_server, "http_server", 2048, NULL, 5, NULL);
-//	xTaskCreate(&task_blinking_led, "blinking_led", 2048, NULL, 5, NULL);
-//	xTaskCreate(&task_i2c_test, "task_i2c_test", 2048, NULL, 5, NULL);
 	xTaskCreate(&main_task, "main_task", 2048, NULL, 5, NULL);
 }
 
