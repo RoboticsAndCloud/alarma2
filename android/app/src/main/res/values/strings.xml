@@ -4,4 +4,8 @@
     <string name="btn_on">On</string>
     <string name="btn_off">Off</string>
     <string name="btn_list">List</string>
+    <string name="beep">Beep</string>
+    <string name="password">Password</string>
+    <string name="deactivate">Deactivate</string>
+    <string name="activate">Activate</string>
 </resources>

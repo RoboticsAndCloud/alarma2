@@ -8,24 +8,15 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
+import android.text.InputType;
 import android.util.Log;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ListView;
-import android.widget.Spinner;
-import android.widget.Toast;
 
 import com.madsen.peter.alarma2.bt.ArduinoCommands;
 import com.madsen.peter.alarma2.bt.BTUtils;
 import com.madsen.peter.alarma2.bt.Connection;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
     final Connection conn = new Connection();
@@ -33,22 +24,24 @@ public class MainActivity extends AppCompatActivity {
     private static final String PREFS_NAME = "MyPrefsFile";
     private static final String CFG_BT_DEVICE = "bt_device";
 
+    private String m_password = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ((Button) findViewById(R.id.btn_on)).setOnClickListener(new View.OnClickListener() {
+        ((Button) findViewById(R.id.btn_beep)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                action_on();
+                action_beep();
             }
         });
 
-        ((Button) findViewById(R.id.btn_off)).setOnClickListener(new View.OnClickListener() {
+        ((Button) findViewById(R.id.btn_passwd)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                action_off();
+                action_password();
             }
         });
 
@@ -81,11 +74,13 @@ public class MainActivity extends AppCompatActivity {
         final EditText log = (EditText) findViewById(R.id.log);
         log.setText("Connecting to " + device + "...");
 
-        final Button btn_on = (Button) findViewById(R.id.btn_on);
-        final Button btn_off = (Button) findViewById(R.id.btn_off);
+        final Button btn_activate = (Button) findViewById(R.id.btn_activate);
+        final Button btn_deactivate = (Button) findViewById(R.id.btn_deactivate);
+        final Button btn_password = (Button) findViewById(R.id.btn_passwd);
 
-        btn_on.setEnabled(false);
-        btn_off.setEnabled(false);
+        btn_activate.setEnabled(false);
+        btn_deactivate.setEnabled(false);
+        btn_password.setEnabled(false);
 
         new Thread(new Runnable() {
             @Override
@@ -97,8 +92,7 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             log.setText("Connected to " + device);
-                            btn_on.setEnabled(true);
-                            btn_off.setEnabled(true);
+                            btn_password.setEnabled(true);
                         }
                     });
                 } catch (final Exception ex) {
@@ -118,11 +112,13 @@ public class MainActivity extends AppCompatActivity {
     public void onStop() {
         super.onStop();
 
-        final Button btn_on = (Button) findViewById(R.id.btn_on);
-        final Button btn_off = (Button) findViewById(R.id.btn_off);
+        final Button btn_activate = (Button) findViewById(R.id.btn_activate);
+        final Button btn_deactivate = (Button) findViewById(R.id.btn_deactivate);
+        final Button btn_beep = (Button) findViewById(R.id.btn_beep);
 
-        btn_on.setEnabled(false);
-        btn_off.setEnabled(false);
+        btn_activate.setEnabled(false);
+        btn_deactivate.setEnabled(false);
+        btn_beep.setEnabled(false);
 
         try {
             conn.disconnect();
@@ -142,30 +138,44 @@ public class MainActivity extends AppCompatActivity {
         editor.commit();
     }
 
-    public void action_on() {
-        new Thread(new Runnable() {
+    private void action_password() {
+        final EditText taskEditText = new EditText(this);
+        taskEditText.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
+
+        AlertDialog.Builder alert = new AlertDialog.Builder(this);
+        alert.setTitle("Password");
+        alert.setView(taskEditText);
+        alert.setPositiveButton("OK", new DialogInterface.OnClickListener() {
             @Override
-            public void run() {
-                try {
-                    conn.send(ArduinoCommands.CMD_LED_ON);
-                } catch (Exception ex) {
-                } finally {
-                }
+            public void onClick(DialogInterface dialogInterface, int i) {
+                m_password = String.valueOf(taskEditText.getText());
+
+                findViewById(R.id.btn_activate).setEnabled(true);
+                findViewById(R.id.btn_deactivate).setEnabled(true);
+                findViewById(R.id.btn_beep).setEnabled(true);
             }
-        }).start();
+        });
+        alert.show();
     }
 
-    public void action_off() {
+    private void action_beep() {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    conn.send(ArduinoCommands.CMD_LED_OFF);
+                    final String reply = conn.send(ArduinoCommands.CMD_BEEP);
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            append_to_log(ArduinoCommands.CMD_BEEP);
+                            append_to_log(reply);
+                        }
+                    });
                 } catch (Exception ex) {
-                } finally {
                 }
             }
         }).start();
+
 //        Toast.makeText(getApplicationContext(), "Turned off", Toast.LENGTH_LONG).show();
     }
 
@@ -195,5 +205,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         alert.show();
+    }
+
+    private void append_to_log(String text) {
+        EditText log = (EditText)findViewById(R.id.txt_log);
+        log.append(text + "\n");
     }
 }
