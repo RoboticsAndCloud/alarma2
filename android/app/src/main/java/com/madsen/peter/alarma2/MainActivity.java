@@ -3,6 +3,7 @@ package com.madsen.peter.alarma2;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.renderscript.ScriptGroup;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -14,6 +15,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.madsen.peter.alarma2.bt.ArduinoCommands;
 import com.madsen.peter.alarma2.bt.BTUtils;
@@ -24,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String PREFS_NAME = "MyPrefsFile";
     private static final String CFG_BT_DEVICE = "bt_device";
+    private static final String CFG_PASSWORD = "password";
 
     private String m_password = null;
 
@@ -32,17 +35,31 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ((Button) findViewById(R.id.btn_beep)).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.btn_beep).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 action_beep();
             }
         });
 
-        ((Button) findViewById(R.id.btn_passwd)).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.btn_passwd).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 action_password();
+            }
+        });
+
+        findViewById(R.id.btn_activate).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                action_activate(true);
+            }
+        });
+
+        findViewById(R.id.btn_deactivate).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                action_activate(false);
             }
         });
 
@@ -58,13 +75,15 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
         String bt_device = settings.getString(CFG_BT_DEVICE, "...");
         btn_select_bt.setText(bt_device);
+
+        m_password = settings.getString(CFG_PASSWORD, "");
     }
 
     @Override
     protected void onStart() {
         super.onStart();
 
-        final Button btn_select_bt = (Button) findViewById(R.id.btn_bt_device);
+        final Button btn_select_bt = findViewById(R.id.btn_bt_device);
         if (btn_select_bt.getText() == "...")
             return;
 
@@ -75,9 +94,9 @@ public class MainActivity extends AppCompatActivity {
         final EditText log = (EditText) findViewById(R.id.log);
         log.setText("Connecting to " + device + "...");
 
-        final Button btn_activate = (Button) findViewById(R.id.btn_activate);
-        final Button btn_deactivate = (Button) findViewById(R.id.btn_deactivate);
-        final Button btn_password = (Button) findViewById(R.id.btn_passwd);
+        final Button btn_activate = findViewById(R.id.btn_activate);
+        final Button btn_deactivate = findViewById(R.id.btn_deactivate);
+        final Button btn_password = findViewById(R.id.btn_passwd);
 
         btn_activate.setEnabled(false);
         btn_deactivate.setEnabled(false);
@@ -113,9 +132,9 @@ public class MainActivity extends AppCompatActivity {
     public void onStop() {
         super.onStop();
 
-        final Button btn_activate = (Button) findViewById(R.id.btn_activate);
-        final Button btn_deactivate = (Button) findViewById(R.id.btn_deactivate);
-        final Button btn_beep = (Button) findViewById(R.id.btn_beep);
+        final Button btn_activate = findViewById(R.id.btn_activate);
+        final Button btn_deactivate = findViewById(R.id.btn_deactivate);
+        final Button btn_beep = findViewById(R.id.btn_beep);
 
         btn_activate.setEnabled(false);
         btn_deactivate.setEnabled(false);
@@ -127,21 +146,24 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-        // We need an Editor object to make preference changes.
-        // All objects are from android.context.Context
+        save_settings();
+    }
 
-        final Button btn_select_bt = (Button) findViewById(R.id.btn_bt_device);
+    private void save_settings() {
+        final Button btn_select_bt = findViewById(R.id.btn_bt_device);
 
         SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
         SharedPreferences.Editor editor = settings.edit();
         editor.putString(CFG_BT_DEVICE, btn_select_bt.getText().toString());
+        editor.putString(CFG_PASSWORD, m_password);
         Log.d("xxx", btn_select_bt.getText().toString());
+
         editor.commit();
     }
 
     private void action_password() {
         final EditText taskEditText = new EditText(this);
-        taskEditText.setInputType(InputType.TYPE_CLASS_NUMBER);
+        taskEditText.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
 
         AlertDialog.Builder alert = new AlertDialog.Builder(this);
         alert.setTitle("Password");
@@ -154,6 +176,8 @@ public class MainActivity extends AppCompatActivity {
                 findViewById(R.id.btn_activate).setEnabled(true);
                 findViewById(R.id.btn_deactivate).setEnabled(true);
                 findViewById(R.id.btn_beep).setEnabled(true);
+
+                save_settings();
             }
         });
         alert.show();
@@ -167,6 +191,8 @@ public class MainActivity extends AppCompatActivity {
                     append_to_log(ArduinoCommands.CMD_BEEP);
                     final String reply = conn.send(ArduinoCommands.CMD_BEEP);
                     append_to_log(reply);
+                    make_toast(R.string.beep);
+
                 } catch (Exception ex) {
 //                    append_to_log(R.string.);
 //                    ex.printStackTrace();
@@ -174,8 +200,22 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }).start();
+    }
 
-//        Toast.makeText(getApplicationContext(), "Turned off", Toast.LENGTH_LONG).show();
+    private void action_activate(final boolean activate) {
+        final String cmd = activate ? ArduinoCommands.CMD_ACTIVATE : ArduinoCommands.CMD_DEACTIVATE;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    String str = cmd + m_password;
+                    append_to_log(cmd);
+                    String reply = conn.send(str);
+                    append_to_log(reply);
+                } catch(Exception ex) {
+                }
+            }
+        }).start();
     }
 
     private void action_select_bt() {
@@ -210,8 +250,17 @@ public class MainActivity extends AppCompatActivity {
         MainActivity.this.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                TextView log = (TextView)findViewById(R.id.txt_log);
+                TextView log = findViewById(R.id.txt_log);
                 log.append(text + "\n");
+            }
+        });
+    }
+
+    private void make_toast(final int string_id) {
+        MainActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), R.string.beep, Toast.LENGTH_SHORT).show();
             }
         });
     }
