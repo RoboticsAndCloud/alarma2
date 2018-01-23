@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import com.madsen.peter.alarma2.bt.ArduinoCommands;
 import com.madsen.peter.alarma2.bt.BTUtils;
@@ -140,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void action_password() {
         final EditText taskEditText = new EditText(this);
-        taskEditText.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        taskEditText.setInputType(InputType.TYPE_CLASS_NUMBER);
 
         AlertDialog.Builder alert = new AlertDialog.Builder(this);
         alert.setTitle("Password");
@@ -163,15 +164,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 try {
+                    append_to_log(ArduinoCommands.CMD_BEEP);
                     final String reply = conn.send(ArduinoCommands.CMD_BEEP);
-                    MainActivity.this.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            append_to_log(ArduinoCommands.CMD_BEEP);
-                            append_to_log(reply);
-                        }
-                    });
+                    append_to_log(reply);
                 } catch (Exception ex) {
+//                    append_to_log(R.string.);
+//                    ex.printStackTrace();
+//                    Log.e("", ffff);
                 }
             }
         }).start();
@@ -207,8 +206,13 @@ public class MainActivity extends AppCompatActivity {
         alert.show();
     }
 
-    private void append_to_log(String text) {
-        EditText log = (EditText)findViewById(R.id.txt_log);
-        log.append(text + "\n");
+    private void append_to_log(final String text) {
+        MainActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                TextView log = (TextView)findViewById(R.id.txt_log);
+                log.append(text + "\n");
+            }
+        });
     }
 }
